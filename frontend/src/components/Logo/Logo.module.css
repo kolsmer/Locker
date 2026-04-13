@@ -1,0 +1,15 @@
+.container {
+  border: 2px solid var(--main-text-color);
+  border-radius: 999px;
+  padding: 0 48px;
+  display: inline-block;
+
+}
+
+.text {
+  font-size: 48px;
+  font-weight: 700;
+  text-transform: uppercase;
+  display: inline-block;
+  transform: translateY(-2px);
+}
