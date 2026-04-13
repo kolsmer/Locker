@@ -1,0 +1,12 @@
+:root {
+  --background: #252423;
+  --main-text: #FFFFFF;
+  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
+  color: var(--text);
+  background: var(--background);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+}
