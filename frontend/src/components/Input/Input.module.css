@@ -1,0 +1,29 @@
+.input {
+	border: 2px solid var(--main-text-color);
+	background: transparent;
+	color: var(--main-text-color);
+	border-radius: 999px;
+	padding: 5px 25px;
+	font-weight: 700;
+	text-align: center;
+	caret-color: var(--main-text-color);
+}
+
+.input::placeholder {
+	color: #8f8f8f;
+	font-weight: 700;
+}
+
+.input--regular {
+	font-size: 32px;
+	line-height: 1;
+}
+
+.input--big {
+	font-size: 64px;
+	line-height: 1;
+}
+
+.input--full {
+	width: 100%;
+}
