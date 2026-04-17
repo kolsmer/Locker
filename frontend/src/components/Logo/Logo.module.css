@@ -1,15 +1,33 @@
 .container {
   border: 2px solid var(--main-text-color);
   border-radius: 999px;
-  padding: 0 48px;
-  display: inline-block;
-
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .text {
-  font-size: 48px;
   font-weight: 700;
   text-transform: uppercase;
-  display: inline-block;
+  line-height: 1;
+  display: block;
+}
+
+.container--regular {
+  padding: 6px 48px;
+}
+
+.text--regular {
+  font-size: 48px;
   transform: translateY(-2px);
+}
+
+.container--compact {
+  padding: 3px 18px;
+  border-width: 1px;
+}
+
+.text--compact {
+  font-size: 30px;
+  transform: translateY(-1px);
 }

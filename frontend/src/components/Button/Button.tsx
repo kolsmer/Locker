@@ -1,7 +1,7 @@
 import type { ButtonHTMLAttributes, ReactNode } from "react"
 import styles from "./Button.module.css";
 
-type ButtonVariant = "big" | "regular";
+type ButtonVariant = "big" | "regular" | "compact";
 
 type Props = {
   children: ReactNode;

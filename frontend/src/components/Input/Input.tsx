@@ -1,7 +1,7 @@
 import type { InputHTMLAttributes } from "react";
 import styles from "./Input.module.css";
 
-type InputVariant = "big" | "regular";
+type InputVariant = "big" | "regular" | "compact";
 
 type Props = {
 	variant?: InputVariant;

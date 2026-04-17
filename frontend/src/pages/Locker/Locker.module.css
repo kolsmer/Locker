@@ -1,0 +1,280 @@
+.page {
+  min-height: 100svh;
+  width: min(100%, 1440px);
+  margin: 0 auto;
+  padding: 24px 48px 36px;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 22px;
+}
+
+.panel {
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(320px, 1fr) 1px minmax(320px, 1fr);
+  gap: 34px;
+  align-items: stretch;
+}
+
+.centerDivider {
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.leftColumn,
+.rightColumn {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.formSection,
+.formSectionTall,
+.rightSection {
+  width: min(100%, 560px);
+  margin-inline: auto;
+}
+
+.formSectionTall {
+  min-height: 560px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.sectionTitle {
+  font-size: 48px;
+  font-weight: 700;
+  margin-bottom: 50px;
+  text-align: center;
+}
+
+.subTitle {
+  font-size: 32px;
+  font-weight: 700;
+  margin-bottom: 30px;
+  text-align: center;
+
+}
+
+.subTitleCenter {
+  font-size: 24px;
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.divider {
+  height: 1px;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.24);
+  margin: 50px 0;
+}
+
+.sizeRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.sizeButton {
+  font-size: 64px;
+}
+
+.sizeButtonWide {
+  min-width: 98px;
+}
+
+.sizeButtonActive {
+  background: var(--main-text-color);
+  color: var(--background);
+}
+
+.dimensionsRow {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+  width: 100%;
+}
+
+.dimensionInput {
+  font-size: 32px;
+  min-height: 52px;
+  width: 100%;
+  min-width: 0;
+}
+
+.primaryAction,
+.secondaryAction {
+  width: 100%;
+  min-height: 56px;
+  font-size: 38px;
+}
+
+.statusMessage {
+  margin-top: 12px;
+  color: #ff9b9b;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.lockerTitle {
+  font-size: 48px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.stackGap {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.phoneInput {
+  min-height: 58px;
+  font-size: 34px;
+  width: 100%;
+  min-width: 0;
+}
+
+.label {
+  font-size: 48px;
+  font-weight: 700;
+  margin-bottom: 30px;
+  text-align: center;
+}
+
+.value,
+.codeValue {
+  font-size: 48px;
+  font-weight: 700;
+  margin-bottom: 30px;
+}
+
+.phoneSummary {
+  max-width: 520px;
+}
+
+.helperText,
+.helperTextWide {
+  font-size: 24px;
+  text-align: center;
+}
+
+.helperTextWide {
+  max-width: 540px;
+}
+
+.rightTitle {
+  font-size: 48px;
+  font-weight: 700;
+  margin-bottom: 30px;
+  text-align: center;;
+  
+}
+
+
+.codeRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.codeInput {
+  min-height: 58px;
+  font-size: 32px;
+  width: auto;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.arrowButton {
+  min-width: 58px;
+  width: 58px;
+  height: 58px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  padding: 0;
+  display: grid;
+  place-items: center;
+}
+
+.arrowIcon {
+  width: 28px;
+  height: 28px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transform: translateX(1px);
+}
+
+.amountTitle {
+  font-size: 54px;
+  font-weight: 700;
+  margin-bottom: 16px;
+}
+
+.paymentStatus {
+  text-align: center;
+  font-size: 24px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.qrPlaceholder {
+  width: min(260px, 62vw);
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  margin: 0 auto 14px;
+  border: 2px dashed rgba(255, 255, 255, 0.45);
+  border-radius: 8px;
+  background:
+    linear-gradient(45deg, rgba(255, 255, 255, 0.08) 25%, transparent 25%)
+      0 0 / 18px 18px,
+    linear-gradient(-45deg, rgba(255, 255, 255, 0.08) 25%, transparent 25%)
+      0 0 / 18px 18px,
+    linear-gradient(45deg, transparent 75%, rgba(255, 255, 255, 0.08) 75%)
+      0 0 / 18px 18px,
+    linear-gradient(-45deg, transparent 75%, rgba(255, 255, 255, 0.08) 75%)
+      0 0 / 18px 18px;
+  font-size: 54px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+
+.qrImage {
+  width: min(260px, 62vw);
+  aspect-ratio: 1;
+  object-fit: cover;
+  display: block;
+  margin: 0 auto 14px;
+  background: #fff;
+}
+
+.noCellsState {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 22px;
+}
+
+.noCellsText {
+  text-align: center;
+  font-size: 34px;
+  font-weight: 700;
+}
+

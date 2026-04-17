@@ -12,6 +12,12 @@
   font-size: 32px;
 }
 
+.btn--compact {
+  font-size: 16px;
+  line-height: 1.2;
+  padding-block: 8px;
+}
+
 .btn--big {
   font-size: 64px;
   line-height: 83px;
