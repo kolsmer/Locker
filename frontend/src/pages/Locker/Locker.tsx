@@ -430,7 +430,7 @@ function Locker() {
 
               <div className={styles.divider} />
 
-              <p className={styles.subTitleCenter}>
+              <p className={styles.subTitle}>
                 Не знаете, какая ячейка нужна?
                 <br />
                 Введите размеры багажа:
