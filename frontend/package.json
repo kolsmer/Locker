@@ -8,7 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "css:sort": "postcss \"src/**/*.css\" --replace",
+    "css:sort": "postcss \"src/**/*.css\" --replace --config postcss.sorting.config.cjs",
     "format": "npm run css:sort && prettier . --write",
     "format:check": "prettier . --check"
   },
