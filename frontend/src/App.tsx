@@ -1,23 +1,23 @@
-import './App.css'
-import { Navigate, Route, Routes, useParams } from 'react-router-dom'
-import LockerList from "./pages/LockerList/LockerList.tsx"
-import Locker from "./pages/Locker/Locker.tsx"
-import Admin from "./pages/Admin/Admin.tsx"
+import "./App.css";
+import { Navigate, Route, Routes, useParams } from "react-router-dom";
+import LockerList from "./pages/LockerList/LockerList.tsx";
+import Locker from "./pages/Locker/Locker.tsx";
+import Admin from "./pages/Admin/Admin.tsx";
 
 function LegacyLockerRedirect() {
-  const { lockerSlug } = useParams<{ lockerSlug: string }>()
+  const { lockerSlug } = useParams<{ lockerSlug: string }>();
 
-  if (!lockerSlug || !lockerSlug.startsWith('locker-')) {
-    return <Navigate to="/" replace />
+  if (!lockerSlug || !lockerSlug.startsWith("locker-")) {
+    return <Navigate to="/" replace />;
   }
 
-  const lockerId = lockerSlug.slice('locker-'.length)
+  const lockerId = lockerSlug.slice("locker-".length);
 
   if (!lockerId) {
-    return <Navigate to="/" replace />
+    return <Navigate to="/" replace />;
   }
 
-  return <Navigate to={`/locker/${lockerId}`} replace />
+  return <Navigate to={`/locker/${lockerId}`} replace />;
 }
 
 function App() {
@@ -31,7 +31,7 @@ function App() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </>
-  )
+  );
 }
 
-export default App
+export default App;

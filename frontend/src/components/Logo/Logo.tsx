@@ -1,4 +1,4 @@
-import styles from './Logo.module.css';
+import styles from "./Logo.module.css";
 
 type LogoSize = "regular" | "compact";
 
@@ -7,12 +7,8 @@ type Props = {
   className?: string;
 };
 
-function Logo ({ size = "regular", className = "" }: Props) {
-  const containerClassNames = [
-    styles.container,
-    styles[`container--${size}`],
-    className,
-  ]
+function Logo({ size = "regular", className = "" }: Props) {
+  const containerClassNames = [styles.container, styles[`container--${size}`], className]
     .filter(Boolean)
     .join(" ");
 
@@ -22,7 +18,7 @@ function Logo ({ size = "regular", className = "" }: Props) {
     <div className={containerClassNames}>
       <span className={textClassNames}>Lock'it</span>
     </div>
-  )
+  );
 }
 
 export default Logo;

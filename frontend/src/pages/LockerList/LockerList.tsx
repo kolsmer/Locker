@@ -108,9 +108,7 @@ function LockerList() {
               <article key={locker.id} className={styles.listItem}>
                 <h2 className={styles.street}>
                   <span className={styles.streetFirstWord}>{firstWord}</span>
-                  {restText && (
-                    <span className={styles.streetRestWords}>{restText}</span>
-                  )}
+                  {restText && <span className={styles.streetRestWords}>{restText}</span>}
                 </h2>
 
                 <div className={styles.sizes}>

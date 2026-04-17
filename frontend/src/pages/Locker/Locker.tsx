@@ -4,11 +4,7 @@ import Button from "../../components/Button/Button";
 import Input from "../../components/Input/Input";
 import Logo from "../../components/Logo/Logo";
 import styles from "./Locker.module.css";
-import {
-  LOCKER_MOCK_DATA,
-  type LockerMockScenario,
-  type LockerSize,
-} from "./mock";
+import { LOCKER_MOCK_DATA, type LockerMockScenario, type LockerSize } from "./mock";
 
 type FlowStep =
   | "select-size"
@@ -64,9 +60,7 @@ const cloneCellsBySize = (cells: Record<LockerSize, number[]>) => ({
   xl: [...cells.xl],
 });
 
-const createLockerScenario = (
-  lockerIdRaw: string | undefined,
-): LockerMockScenario => {
+const createLockerScenario = (lockerIdRaw: string | undefined): LockerMockScenario => {
   const parsedLockerId = Number(lockerIdRaw);
 
   if (Number.isFinite(parsedLockerId)) {
@@ -97,8 +91,7 @@ const createInitialFlowState = (scenario: LockerMockScenario): FlowState => ({
   formMessage: null,
 });
 
-const generateAccessCode = () =>
-  Math.random().toString(36).slice(2, 8).toUpperCase();
+const generateAccessCode = () => Math.random().toString(36).slice(2, 8).toUpperCase();
 
 const isPhoneValid = (phone: string) => {
   const digits = phone.replace(/\D/g, "");
@@ -128,8 +121,9 @@ const normalizePhone = (phone: string) => {
 };
 
 const detectLockerSizeByDimensions = (dimensions: Dimensions): LockerSize | null => {
-  const numericValues = [dimensions.length, dimensions.width, dimensions.height]
-    .map((value) => Number(value.trim().replace(",", ".")));
+  const numericValues = [dimensions.length, dimensions.width, dimensions.height].map((value) =>
+    Number(value.trim().replace(",", ".")),
+  );
 
   if (numericValues.some((value) => !Number.isFinite(value) || value <= 0)) {
     return null;
@@ -202,10 +196,9 @@ const lockerReducer = (state: FlowState, action: Action): FlowState => {
       const nextAvailableCellsBySize = cloneCellsBySize(state.availableCellsBySize);
 
       if (state.selectedSize && state.currentCellNumber !== null) {
-        nextAvailableCellsBySize[state.selectedSize] =
-          nextAvailableCellsBySize[state.selectedSize].filter(
-            (cellNumber) => cellNumber !== state.currentCellNumber,
-          );
+        nextAvailableCellsBySize[state.selectedSize] = nextAvailableCellsBySize[
+          state.selectedSize
+        ].filter((cellNumber) => cellNumber !== state.currentCellNumber);
       }
 
       return {
@@ -243,10 +236,7 @@ function Locker() {
   const { lockerId } = useParams<{ lockerId: string }>();
 
   const scenario = useMemo(() => createLockerScenario(lockerId), [lockerId]);
-  const initialFlowState = useMemo(
-    () => createInitialFlowState(scenario),
-    [scenario],
-  );
+  const initialFlowState = useMemo(() => createInitialFlowState(scenario), [scenario]);
 
   const [state, dispatch] = useReducer(lockerReducer, initialFlowState);
   const [dimensionsMessage, setDimensionsMessage] = useState<string | null>(null);
@@ -362,9 +352,7 @@ function Locker() {
   const renderPhoneSummary = () => (
     <div className={styles.phoneSummary}>
       <p className={styles.label}>НОМЕР ТЕЛЕФОНА: {state.confirmedPhone}</p>
-      <p className={styles.helperText}>
-        Если это не ваш номер телефона, обратитесь в поддержку.
-      </p>
+      <p className={styles.helperText}>Если это не ваш номер телефона, обратитесь в поддержку.</p>
     </div>
   );
 
@@ -486,10 +474,7 @@ function Locker() {
                 Далее
               </Button>
 
-              {dimensionsMessage && (
-                <p className={styles.statusMessage}>{dimensionsMessage}</p>
-              )}
-
+              {dimensionsMessage && <p className={styles.statusMessage}>{dimensionsMessage}</p>}
             </div>
           )}
 
@@ -515,16 +500,10 @@ function Locker() {
                 >
                   Открыть ячейку
                 </Button>
-                              {state.formMessage && (
-                <p className={styles.statusMessage}>{state.formMessage}</p>
-              )}
+                {state.formMessage && <p className={styles.statusMessage}>{state.formMessage}</p>}
               </div>
 
-              <Button
-                variant="compact"
-                className={styles.secondaryAction}
-                onClick={handleExit}
-              >
+              <Button variant="compact" className={styles.secondaryAction} onClick={handleExit}>
                 Выйти
               </Button>
             </div>
@@ -536,11 +515,7 @@ function Locker() {
 
               {renderPhoneSummary()}
 
-              <Button
-                variant="compact"
-                className={styles.secondaryAction}
-                onClick={handleExit}
-              >
+              <Button variant="compact" className={styles.secondaryAction} onClick={handleExit}>
                 Выйти
               </Button>
             </div>
@@ -552,11 +527,7 @@ function Locker() {
 
               {renderPhoneSummary()}
 
-              <Button
-                variant="compact"
-                className={styles.secondaryAction}
-                onClick={handleEndRent}
-              >
+              <Button variant="compact" className={styles.secondaryAction} onClick={handleEndRent}>
                 Завершить аренду
               </Button>
             </div>
@@ -586,9 +557,7 @@ function Locker() {
                   className={styles.codeInput}
                   placeholder="Введите код"
                   value={state.codeInput}
-                  onChange={(event) =>
-                    dispatch({ type: "update-code", value: event.target.value })
-                  }
+                  onChange={(event) => dispatch({ type: "update-code", value: event.target.value })}
                 />
 
                 <Button
@@ -597,20 +566,14 @@ function Locker() {
                   aria-label="Проверить код доступа"
                   onClick={handleCodeSubmit}
                 >
-                  <svg
-                    viewBox="0 0 24 24"
-                    aria-hidden="true"
-                    className={styles.arrowIcon}
-                  >
+                  <svg viewBox="0 0 24 24" aria-hidden="true" className={styles.arrowIcon}>
                     <path d="M5 12H19" />
                     <path d="M13 6L19 12L13 18" />
                   </svg>
                 </Button>
               </div>
 
-              {state.formMessage && (
-                <p className={styles.statusMessage}>{state.formMessage}</p>
-              )}
+              {state.formMessage && <p className={styles.statusMessage}>{state.formMessage}</p>}
             </div>
           )}
 
@@ -625,8 +588,8 @@ function Locker() {
               </h2>
 
               <p className={styles.helperTextWide}>
-                Запомните или запишите код доступа, он понадобится для открытия
-                ячейки камеры хранения.
+                Запомните или запишите код доступа, он понадобится для открытия ячейки камеры
+                хранения.
               </p>
             </div>
           )}
@@ -635,8 +598,7 @@ function Locker() {
             <div className={styles.rightSection}>
               <p className={styles.label}>КОД ДОСТУПА: {state.issuedCode}</p>
               <p className={styles.helperTextWide}>
-                Запомните или запишите этот код, он понадобится для открытия
-                ячейки камеры хранения.
+                Запомните или запишите этот код, он понадобится для открытия ячейки камеры хранения.
               </p>
             </div>
           )}
@@ -647,8 +609,7 @@ function Locker() {
               <p className={styles.codeValue}>{state.issuedCode}</p>
 
               <p className={styles.helperTextWide}>
-                Запомните или запишите этот код, он понадобится для открытия
-                ячейки камеры хранения.
+                Запомните или запишите этот код, он понадобится для открытия ячейки камеры хранения.
               </p>
             </div>
           )}

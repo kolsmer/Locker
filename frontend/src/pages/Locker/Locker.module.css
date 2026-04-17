@@ -59,7 +59,6 @@
   font-weight: 700;
   margin-bottom: 30px;
   text-align: center;
-
 }
 
 .divider {
@@ -169,10 +168,8 @@
   font-size: 48px;
   font-weight: 700;
   margin-bottom: 30px;
-  text-align: center;;
-  
+  text-align: center;
 }
-
 
 .codeRow {
   display: flex;
@@ -234,14 +231,10 @@
   border: 2px dashed rgba(255, 255, 255, 0.45);
   border-radius: 8px;
   background:
-    linear-gradient(45deg, rgba(255, 255, 255, 0.08) 25%, transparent 25%)
-      0 0 / 18px 18px,
-    linear-gradient(-45deg, rgba(255, 255, 255, 0.08) 25%, transparent 25%)
-      0 0 / 18px 18px,
-    linear-gradient(45deg, transparent 75%, rgba(255, 255, 255, 0.08) 75%)
-      0 0 / 18px 18px,
-    linear-gradient(-45deg, transparent 75%, rgba(255, 255, 255, 0.08) 75%)
-      0 0 / 18px 18px;
+    linear-gradient(45deg, rgba(255, 255, 255, 0.08) 25%, transparent 25%) 0 0 / 18px 18px,
+    linear-gradient(-45deg, rgba(255, 255, 255, 0.08) 25%, transparent 25%) 0 0 / 18px 18px,
+    linear-gradient(45deg, transparent 75%, rgba(255, 255, 255, 0.08) 75%) 0 0 / 18px 18px,
+    linear-gradient(-45deg, transparent 75%, rgba(255, 255, 255, 0.08) 75%) 0 0 / 18px 18px;
   font-size: 54px;
   font-weight: 700;
   letter-spacing: 0.12em;
@@ -270,4 +263,3 @@
   font-size: 34px;
   font-weight: 700;
 }
-

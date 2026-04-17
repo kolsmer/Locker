@@ -1,128 +1,128 @@
 {
-	"ok": true,
-	"data": [
-		{
-			"id": 101,
-			"street": "ULITSA PUSHKINA, 14",
-			"freeCells": {
-				"s": 4,
-				"m": 2,
-				"l": 1,
-				"xl": 0
-			}
-		},
-		{
-			"id": 102,
-			"street": "ULITSA TVERSKAYA, 8",
-			"freeCells": {
-				"s": 7,
-				"m": 3,
-				"l": 2,
-				"xl": 1
-			}
-		},
-		{
-			"id": 103,
-			"street": "ULITSA LENINA, 22",
-			"freeCells": {
-				"s": 1,
-				"m": 2,
-				"l": 0,
-				"xl": 0
-			}
-		},
-		{
-			"id": 104,
-			"street": "ULITSA GAGARINA, 17",
-			"freeCells": {
-				"s": 5,
-				"m": 4,
-				"l": 2,
-				"xl": 2
-			}
-		},
-		{
-			"id": 105,
-			"street": "ULITSA BEREGOVAYA, 3",
-			"freeCells": {
-				"s": 0,
-				"m": 1,
-				"l": 1,
-				"xl": 0
-			}
-		},
-		{
-			"id": 106,
-			"street": "ULITSA SADOVAYA, 45",
-			"freeCells": {
-				"s": 8,
-				"m": 5,
-				"l": 3,
-				"xl": 2
-			}
-		},
-		{
-			"id": 107,
-			"street": "ULITSA AKADEMIKA KOROLEVA, 12",
-			"freeCells": {
-				"s": 3,
-				"m": 2,
-				"l": 2,
-				"xl": 1
-			}
-		},
-		{
-			"id": 108,
-			"street": "ULITSA BOLSHAYA NIKITSKAYA, 9",
-			"freeCells": {
-				"s": 2,
-				"m": 1,
-				"l": 0,
-				"xl": 0
-			}
-		},
-		{
-			"id": 109,
-			"street": "ULITSA NOVAYA BASSMANNAYA, 28",
-			"freeCells": {
-				"s": 6,
-				"m": 4,
-				"l": 3,
-				"xl": 1
-			}
-		},
-		{
-			"id": 110,
-			"street": "ULITSA MAROSEYKA, 6",
-			"freeCells": {
-				"s": 4,
-				"m": 3,
-				"l": 2,
-				"xl": 1
-			}
-		},
-		{
-			"id": 111,
-			"street": "ULITSA ARBAT, 31",
-			"freeCells": {
-				"s": 1,
-				"m": 1,
-				"l": 1,
-				"xl": 0
-			}
-		},
-		{
-			"id": 112,
-			"street": "ULITSA POKROVKA, 19",
-			"freeCells": {
-				"s": 9,
-				"m": 6,
-				"l": 4,
-				"xl": 2
-			}
-		}
-	],
-	"meta": {
-		"total": 12
-	}
+  "ok": true,
+  "data": [
+    {
+      "id": 101,
+      "street": "ULITSA PUSHKINA, 14",
+      "freeCells": {
+        "s": 4,
+        "m": 2,
+        "l": 1,
+        "xl": 0
+      }
+    },
+    {
+      "id": 102,
+      "street": "ULITSA TVERSKAYA, 8",
+      "freeCells": {
+        "s": 7,
+        "m": 3,
+        "l": 2,
+        "xl": 1
+      }
+    },
+    {
+      "id": 103,
+      "street": "ULITSA LENINA, 22",
+      "freeCells": {
+        "s": 1,
+        "m": 2,
+        "l": 0,
+        "xl": 0
+      }
+    },
+    {
+      "id": 104,
+      "street": "ULITSA GAGARINA, 17",
+      "freeCells": {
+        "s": 5,
+        "m": 4,
+        "l": 2,
+        "xl": 2
+      }
+    },
+    {
+      "id": 105,
+      "street": "ULITSA BEREGOVAYA, 3",
+      "freeCells": {
+        "s": 0,
+        "m": 1,
+        "l": 1,
+        "xl": 0
+      }
+    },
+    {
+      "id": 106,
+      "street": "ULITSA SADOVAYA, 45",
+      "freeCells": {
+        "s": 8,
+        "m": 5,
+        "l": 3,
+        "xl": 2
+      }
+    },
+    {
+      "id": 107,
+      "street": "ULITSA AKADEMIKA KOROLEVA, 12",
+      "freeCells": {
+        "s": 3,
+        "m": 2,
+        "l": 2,
+        "xl": 1
+      }
+    },
+    {
+      "id": 108,
+      "street": "ULITSA BOLSHAYA NIKITSKAYA, 9",
+      "freeCells": {
+        "s": 2,
+        "m": 1,
+        "l": 0,
+        "xl": 0
+      }
+    },
+    {
+      "id": 109,
+      "street": "ULITSA NOVAYA BASSMANNAYA, 28",
+      "freeCells": {
+        "s": 6,
+        "m": 4,
+        "l": 3,
+        "xl": 1
+      }
+    },
+    {
+      "id": 110,
+      "street": "ULITSA MAROSEYKA, 6",
+      "freeCells": {
+        "s": 4,
+        "m": 3,
+        "l": 2,
+        "xl": 1
+      }
+    },
+    {
+      "id": 111,
+      "street": "ULITSA ARBAT, 31",
+      "freeCells": {
+        "s": 1,
+        "m": 1,
+        "l": 1,
+        "xl": 0
+      }
+    },
+    {
+      "id": 112,
+      "street": "ULITSA POKROVKA, 19",
+      "freeCells": {
+        "s": 9,
+        "m": 6,
+        "l": 4,
+        "xl": 2
+      }
+    }
+  ],
+  "meta": {
+    "total": 12
+  }
 }

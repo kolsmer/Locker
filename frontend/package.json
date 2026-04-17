@@ -7,7 +7,10 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "css:sort": "postcss \"src/**/*.css\" --replace",
+    "format": "npm run css:sort && prettier . --write",
+    "format:check": "prettier . --check"
   },
   "dependencies": {
     "geist": "^1.7.0",
@@ -25,6 +28,10 @@
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.4.0",
+    "postcss": "^8.5.10",
+    "postcss-cli": "^11.0.1",
+    "postcss-sorting": "^10.0.0",
+    "prettier": "^3.8.3",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.58.0",
     "vite": "^8.0.4"
