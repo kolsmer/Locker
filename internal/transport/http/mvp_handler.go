@@ -146,7 +146,7 @@ func (h *MVPHandler) cleanupExpiredSelections(ctx context.Context) error {
 		UPDATE lockers l
 		SET status = 'free', updated_at = EXTRACT(EPOCH FROM NOW())::bigint
 		FROM expired e
-		WHERE l.id = e.locker_cell_id
+		WHERE l.id = e.locker_cell_id AND l.status = 'reserved'
 	`)
 	return err
 }
@@ -339,7 +339,7 @@ func (h *MVPHandler) CreateCellSelection(w http.ResponseWriter, r *http.Request)
 			RETURNING locker_cell_id
 		)
 		UPDATE lockers l SET status='free', updated_at=EXTRACT(EPOCH FROM NOW())::bigint
-		FROM expired e WHERE l.id=e.locker_cell_id
+		FROM expired e WHERE l.id=e.locker_cell_id AND l.status='reserved'
 	`)
 
 	var locationExists int
@@ -364,11 +364,6 @@ func (h *MVPHandler) CreateCellSelection(w http.ResponseWriter, r *http.Request)
 	}
 	if err != nil {
 		writeErr(w, rid, http.StatusInternalServerError, "INTERNAL_ERROR", "db error", nil)
-		return
-	}
-
-	if _, err := tx.ExecContext(ctx, `UPDATE lockers SET status='reserved', updated_at=EXTRACT(EPOCH FROM NOW())::bigint WHERE id=$1`, cellID); err != nil {
-		writeErr(w, rid, http.StatusInternalServerError, "INTERNAL_ERROR", "reserve failed", nil)
 		return
 	}
 
@@ -449,8 +444,28 @@ func (h *MVPHandler) CreateBooking(w http.ResponseWriter, r *http.Request) {
 	}
 	if status != "active" || time.Now().After(holdExpires) {
 		_, _ = tx.ExecContext(ctx, `UPDATE mvp_selections SET status='expired', updated_at=NOW() WHERE selection_id=$1`, req.SelectionID)
-		_, _ = tx.ExecContext(ctx, `UPDATE lockers SET status='free', updated_at=EXTRACT(EPOCH FROM NOW())::bigint WHERE id=$1`, selCellID)
+		_, _ = tx.ExecContext(ctx, `UPDATE lockers SET status='free', updated_at=EXTRACT(EPOCH FROM NOW())::bigint WHERE id=$1 AND status='reserved'`, selCellID)
 		writeErr(w, rid, http.StatusGone, "SELECTION_EXPIRED", "Бронь истекла", nil)
+		return
+	}
+
+	var cellStatus string
+	err = tx.QueryRowContext(ctx, `
+		SELECT status
+		FROM lockers
+		WHERE id=$1
+		FOR UPDATE
+	`, selCellID).Scan(&cellStatus)
+	if err == sql.ErrNoRows {
+		writeErr(w, rid, http.StatusNotFound, "LOCKER_NOT_FOUND", "Ячейка не найдена", nil)
+		return
+	}
+	if err != nil {
+		writeErr(w, rid, http.StatusInternalServerError, "INTERNAL_ERROR", "locker read failed", nil)
+		return
+	}
+	if cellStatus == "occupied" {
+		writeErr(w, rid, http.StatusConflict, "CELL_ALREADY_TAKEN", "Ячейка уже занята, выберите другую", nil)
 		return
 	}
 
@@ -544,7 +559,7 @@ func (h *MVPHandler) CheckAccessCode(w http.ResponseWriter, r *http.Request) {
 	err = h.db.QueryRowContext(ctx, `
 		SELECT rental_id, cell_number, phone, state
 		FROM mvp_rentals
-		WHERE locker_id=$1 AND access_code=$2
+		WHERE locker_id=$1 AND access_code=$2 AND state='active'
 	`, lockerID, code).Scan(&rentalID, &cellNumber, &phone, &state)
 	if err == sql.ErrNoRows {
 		writeErr(w, rid, http.StatusNotFound, "INVALID_ACCESS_CODE", "Неверный код доступа", nil)
@@ -655,21 +670,26 @@ func (h *MVPHandler) OpenRental(w http.ResponseWriter, r *http.Request) {
 	_ = h.refreshPaymentStatus(ctx, rentalID)
 
 	var cellNumber int
+	var rentalState string
 	var status string
 	err := h.db.QueryRowContext(ctx, `
-		SELECT r.cell_number, p.status
+		SELECT r.cell_number, r.state, p.status
 		FROM mvp_rentals r
 		LEFT JOIN mvp_payments p ON p.rental_id=r.rental_id
 		WHERE r.rental_id=$1
 		ORDER BY p.created_at DESC
 		LIMIT 1
-	`, rentalID).Scan(&cellNumber, &status)
+	`, rentalID).Scan(&cellNumber, &rentalState, &status)
 	if err == sql.ErrNoRows {
 		writeErr(w, rid, http.StatusNotFound, "RENTAL_NOT_FOUND", "Аренда не найдена", nil)
 		return
 	}
 	if err != nil {
 		writeErr(w, rid, http.StatusInternalServerError, "INTERNAL_ERROR", "db error", nil)
+		return
+	}
+	if rentalState != "active" {
+		writeErr(w, rid, http.StatusConflict, "RENTAL_CLOSED", "Аренда уже завершена", nil)
 		return
 	}
 	if status != "paid" {
