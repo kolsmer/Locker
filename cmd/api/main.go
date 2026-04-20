@@ -1,13 +1,18 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	"locker/internal/config"
+	"locker/internal/cron"
 	"locker/internal/observability"
+	"locker/internal/repository"
+	"locker/internal/service"
 	httpTransport "locker/internal/transport/http"
 
 	"github.com/gorilla/mux"
@@ -33,7 +38,14 @@ func main() {
 		log.Fatal(err)
 	}
 
-	mvp := httpTransport.NewMVPHandler(db)
+	repo := repository.NewRentalFlowRepository(db)
+	svc := service.NewRentalFlowService(repo)
+	if err := svc.Init(context.Background()); err != nil {
+		logger.Error("failed to seed demo data", err)
+		log.Fatal(err)
+	}
+	cron.StartExpiredSelectionCleanup(context.Background(), svc, logger, time.Minute)
+	h := httpTransport.NewLockerHandler(svc)
 
 	// Router
 	router := mux.NewRouter()
@@ -48,14 +60,14 @@ func main() {
 
 	// API v1
 	apiV1 := router.PathPrefix("/api/v1").Subrouter()
-	apiV1.HandleFunc("/lockers", mvp.GetLockers).Methods("GET")
-	apiV1.HandleFunc("/lockers/{lockerId}/cell-selection", mvp.CreateCellSelection).Methods("POST")
-	apiV1.HandleFunc("/lockers/{lockerId}/bookings", mvp.CreateBooking).Methods("POST")
-	apiV1.HandleFunc("/lockers/{lockerId}/access-code/check", mvp.CheckAccessCode).Methods("POST")
-	apiV1.HandleFunc("/payments/{paymentId}", mvp.GetPayment).Methods("GET")
-	apiV1.HandleFunc("/rentals/{rentalId}/open", mvp.OpenRental).Methods("POST")
-	apiV1.HandleFunc("/rentals/{rentalId}/finish", mvp.FinishRental).Methods("POST")
-	apiV1.HandleFunc("/rentals/{rentalId}", mvp.GetRental).Methods("GET")
+	apiV1.HandleFunc("/lockers", h.GetLockers).Methods("GET")
+	apiV1.HandleFunc("/lockers/{lockerId}/cell-selection", h.CreateCellSelection).Methods("POST")
+	apiV1.HandleFunc("/lockers/{lockerId}/bookings", h.CreateBooking).Methods("POST")
+	apiV1.HandleFunc("/lockers/{lockerId}/access-code/check", h.CheckAccessCode).Methods("POST")
+	apiV1.HandleFunc("/payments/{paymentId}", h.GetPayment).Methods("GET")
+	apiV1.HandleFunc("/rentals/{rentalId}/open", h.OpenRental).Methods("POST")
+	apiV1.HandleFunc("/rentals/{rentalId}/finish", h.FinishRental).Methods("POST")
+	apiV1.HandleFunc("/rentals/{rentalId}", h.GetRental).Methods("GET")
 
 	logger.Info("starting server on port", cfg.Port)
 
