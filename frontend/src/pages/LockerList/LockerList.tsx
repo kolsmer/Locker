@@ -1,26 +1,20 @@
 import { useEffect, useState } from "react";
 import Logo from "../../components/Logo/Logo";
+import { ApiRequestError, mvpApi, type LockerListItem } from "../../shared/api/mvpApi";
 import styles from "./lockerList.module.css";
 
-type LockerSizes = {
-  s: number;
-  m: number;
-  l: number;
-  xl: number;
-};
+type LockerItem = LockerListItem;
 
-type LockerItem = {
-  id: number;
-  street: string;
-  freeCells: LockerSizes;
-};
+const getRequestErrorMessage = (error: unknown, fallbackMessage: string) => {
+  if (error instanceof ApiRequestError && error.message) {
+    return error.message;
+  }
 
-type LockerListResponse = {
-  ok: boolean;
-  data: LockerItem[];
-  meta: {
-    total: number;
-  };
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  return fallbackMessage;
 };
 
 const splitStreetText = (street: string) => {
@@ -46,21 +40,11 @@ function LockerList() {
           setIsLoading(true);
         }
 
-        const response = await fetch(new URL("./mock.json", import.meta.url), {
+        const response = await mvpApi.getLockers({
           signal: controller.signal,
         });
 
-        if (!response.ok) {
-          throw new Error(`Request failed: ${response.status}`);
-        }
-
-        const payload = (await response.json()) as LockerListResponse;
-
-        if (!payload.ok) {
-          throw new Error("Mock API returned an error status");
-        }
-
-        setLockers(payload.data);
+        setLockers(response.items);
         setError(null);
       } catch (requestError) {
         if ((requestError as Error).name === "AbortError") {
@@ -68,7 +52,9 @@ function LockerList() {
         }
 
         if (showLoader) {
-          setError("Не удалось загрузить список камер хранения");
+          setError(
+            getRequestErrorMessage(requestError, "Не удалось загрузить список камер хранения"),
+          );
         }
       } finally {
         if (showLoader) {

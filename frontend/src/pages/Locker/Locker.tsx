@@ -3,8 +3,15 @@ import { useNavigate, useParams } from "react-router-dom";
 import Button from "../../components/Button/Button";
 import Input from "../../components/Input/Input";
 import Logo from "../../components/Logo/Logo";
+import {
+  ApiRequestError,
+  mvpApi,
+  type AccessCodeCheckResult,
+  type Booking,
+  type CellSelection,
+  type LockerSize,
+} from "../../shared/api/mvpApi";
 import styles from "./Locker.module.css";
-import { LOCKER_MOCK_DATA, type LockerMockScenario, type LockerSize } from "./mock";
 
 type FlowStep =
   | "select-size"
@@ -23,28 +30,37 @@ type Dimensions = {
 type FlowState = {
   step: FlowStep;
   selectedSize: LockerSize | null;
-  availableCellsBySize: Record<LockerSize, number[]>;
+  selectionId: string | null;
   currentCellNumber: number | null;
   dimensions: Dimensions;
   codeInput: string;
   phoneInput: string;
   confirmedPhone: string;
   issuedCode: string;
+  currentRentalId: string | null;
+  paymentId: string | null;
+  paymentAmount: number | null;
+  paymentCurrency: string;
+  paymentQrPayload: string | null;
   formMessage: string | null;
 };
 
 type Action =
-  | { type: "select-size"; size: LockerSize; cellNumber: number | null }
+  | { type: "selection-created"; selection: CellSelection }
   | { type: "update-dimension"; field: keyof Dimensions; value: string }
   | { type: "update-code"; value: string }
   | { type: "update-phone"; value: string }
   | { type: "set-step"; step: FlowStep }
   | { type: "set-message"; message: string | null }
-  | { type: "booking-created"; phone: string; code: string; cellNumber: number }
-  | { type: "payment-started"; phone: string; code: string; cellNumber: number }
-  | { type: "reset"; state: FlowState };
+  | { type: "booking-created"; booking: Booking }
+  | { type: "access-granted"; access: AccessCodeCheckResult }
+  | { type: "payment-started"; access: AccessCodeCheckResult }
+  | { type: "payment-completed" }
+  | { type: "reset" };
 
 const SIZE_OPTIONS: LockerSize[] = ["s", "m", "l", "xl"];
+const PAYMENT_FALLBACK_TIMEOUT_MS = 5000;
+const PAYMENT_POLL_INTERVAL_MS = 1500;
 
 const SIZE_LABELS: Record<LockerSize, string> = {
   s: "S",
@@ -53,31 +69,10 @@ const SIZE_LABELS: Record<LockerSize, string> = {
   xl: "XL",
 };
 
-const cloneCellsBySize = (cells: Record<LockerSize, number[]>) => ({
-  s: [...cells.s],
-  m: [...cells.m],
-  l: [...cells.l],
-  xl: [...cells.xl],
-});
-
-const createLockerScenario = (lockerIdRaw: string | undefined): LockerMockScenario => {
-  const parsedLockerId = Number(lockerIdRaw);
-
-  if (Number.isFinite(parsedLockerId)) {
-    const byId = LOCKER_MOCK_DATA.find((item) => item.id === parsedLockerId);
-
-    if (byId) {
-      return byId;
-    }
-  }
-
-  return LOCKER_MOCK_DATA[0];
-};
-
-const createInitialFlowState = (scenario: LockerMockScenario): FlowState => ({
+const createInitialFlowState = (): FlowState => ({
   step: "select-size",
   selectedSize: null,
-  availableCellsBySize: cloneCellsBySize(scenario.availableCellsBySize),
+  selectionId: null,
   currentCellNumber: null,
   dimensions: {
     length: "",
@@ -86,12 +81,35 @@ const createInitialFlowState = (scenario: LockerMockScenario): FlowState => ({
   },
   codeInput: "",
   phoneInput: "",
-  confirmedPhone: scenario.activeRentalPhone,
-  issuedCode: scenario.existingAccessCode,
+  confirmedPhone: "",
+  issuedCode: "",
+  currentRentalId: null,
+  paymentId: null,
+  paymentAmount: null,
+  paymentCurrency: "RUB",
+  paymentQrPayload: null,
   formMessage: null,
 });
 
-const generateAccessCode = () => Math.random().toString(36).slice(2, 8).toUpperCase();
+const getRequestErrorMessage = (error: unknown, fallbackMessage: string) => {
+  if (error instanceof ApiRequestError && error.message) {
+    return error.message;
+  }
+
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  return fallbackMessage;
+};
+
+const getRequestErrorCode = (error: unknown) => {
+  if (error instanceof ApiRequestError && error.code) {
+    return error.code;
+  }
+
+  return null;
+};
 
 const isPhoneValid = (phone: string) => {
   const digits = phone.replace(/\D/g, "");
@@ -102,57 +120,17 @@ const isPhoneValid = (phone: string) => {
   return digits.startsWith("7") || digits.startsWith("8");
 };
 
-const normalizePhone = (phone: string) => {
-  const digits = phone.replace(/\D/g, "");
-
-  if (digits.length !== 11) {
-    return phone;
-  }
-
-  if (digits.startsWith("8")) {
-    return `+7${digits.slice(1)}`;
-  }
-
-  if (digits.startsWith("7")) {
-    return `+${digits}`;
-  }
-
-  return phone;
-};
-
-const detectLockerSizeByDimensions = (dimensions: Dimensions): LockerSize | null => {
-  const numericValues = [dimensions.length, dimensions.width, dimensions.height].map((value) =>
-    Number(value.trim().replace(",", ".")),
-  );
-
-  if (numericValues.some((value) => !Number.isFinite(value) || value <= 0)) {
-    return null;
-  }
-
-  const maxDimension = Math.max(...numericValues);
-
-  if (maxDimension <= 40) {
-    return "s";
-  }
-
-  if (maxDimension <= 60) {
-    return "m";
-  }
-
-  if (maxDimension <= 90) {
-    return "l";
-  }
-
-  return "xl";
-};
+const toDimensionNumber = (value: string) => Number(value.trim().replace(",", "."));
 
 const lockerReducer = (state: FlowState, action: Action): FlowState => {
   switch (action.type) {
-    case "select-size": {
+    case "selection-created": {
       return {
         ...state,
-        selectedSize: action.size,
-        currentCellNumber: action.cellNumber,
+        step: "phone-entry",
+        selectedSize: action.selection.size,
+        selectionId: action.selection.selectionId,
+        currentCellNumber: action.selection.cellNumber,
         formMessage: null,
       };
     }
@@ -193,37 +171,66 @@ const lockerReducer = (state: FlowState, action: Action): FlowState => {
       };
     }
     case "booking-created": {
-      const nextAvailableCellsBySize = cloneCellsBySize(state.availableCellsBySize);
-
-      if (state.selectedSize && state.currentCellNumber !== null) {
-        nextAvailableCellsBySize[state.selectedSize] = nextAvailableCellsBySize[
-          state.selectedSize
-        ].filter((cellNumber) => cellNumber !== state.currentCellNumber);
-      }
-
       return {
         ...state,
         step: "access-code",
-        availableCellsBySize: nextAvailableCellsBySize,
-        currentCellNumber: action.cellNumber,
-        confirmedPhone: action.phone,
-        phoneInput: action.phone,
-        issuedCode: action.code,
+        selectionId: null,
+        currentCellNumber: action.booking.cellNumber,
+        confirmedPhone: action.booking.phone,
+        phoneInput: action.booking.phone,
+        issuedCode: action.booking.accessCode,
+        currentRentalId: action.booking.rentalId,
+        paymentId: null,
+        paymentAmount: null,
+        paymentQrPayload: null,
+        formMessage: null,
+      };
+    }
+    case "access-granted": {
+      return {
+        ...state,
+        step: "active-rent",
+        selectionId: null,
+        currentCellNumber: action.access.cellNumber,
+        confirmedPhone: action.access.phone,
+        issuedCode: action.access.accessCode,
+        currentRentalId: action.access.rentalId,
+        paymentId: null,
+        paymentAmount: null,
+        paymentQrPayload: null,
         formMessage: null,
       };
     }
     case "payment-started": {
+      const payment = action.access.payment;
+
       return {
         ...state,
         step: "payment",
-        currentCellNumber: action.cellNumber,
-        confirmedPhone: action.phone,
-        issuedCode: action.code,
+        selectionId: null,
+        currentCellNumber: action.access.cellNumber,
+        confirmedPhone: action.access.phone,
+        issuedCode: action.access.accessCode,
+        currentRentalId: action.access.rentalId,
+        paymentId: payment?.paymentId ?? null,
+        paymentAmount: payment?.amount ?? null,
+        paymentCurrency: payment?.currency ?? "RUB",
+        paymentQrPayload: payment?.qrPayload ?? null,
+        formMessage: null,
+      };
+    }
+    case "payment-completed": {
+      return {
+        ...state,
+        step: "active-rent",
+        paymentId: null,
+        paymentAmount: null,
+        paymentQrPayload: null,
         formMessage: null,
       };
     }
     case "reset": {
-      return action.state;
+      return createInitialFlowState();
     }
     default: {
       return state;
@@ -235,62 +242,200 @@ function Locker() {
   const navigate = useNavigate();
   const { lockerId } = useParams<{ lockerId: string }>();
 
-  const scenario = useMemo(() => createLockerScenario(lockerId), [lockerId]);
-  const initialFlowState = useMemo(() => createInitialFlowState(scenario), [scenario]);
+  const resolvedLockerId = useMemo(() => {
+    const parsedLockerId = Number(lockerId);
 
-  const [state, dispatch] = useReducer(lockerReducer, initialFlowState);
+    if (Number.isFinite(parsedLockerId) && parsedLockerId > 0) {
+      return parsedLockerId;
+    }
+
+    return 123;
+  }, [lockerId]);
+
+  const [state, dispatch] = useReducer(lockerReducer, undefined, createInitialFlowState);
   const [dimensionsMessage, setDimensionsMessage] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [paymentStatusMessage, setPaymentStatusMessage] = useState("Проверяем оплату...");
 
   useEffect(() => {
-    dispatch({ type: "reset", state: initialFlowState });
-  }, [initialFlowState]);
+    dispatch({ type: "reset" });
+    setDimensionsMessage(null);
+    setPaymentStatusMessage("Проверяем оплату...");
+  }, [resolvedLockerId]);
 
   useEffect(() => {
+    const paymentId = state.paymentId;
+    const rentalId = state.currentRentalId;
+
     if (state.step !== "payment") {
       return;
     }
 
-    const timeoutId = window.setTimeout(() => {
-      dispatch({ type: "set-step", step: "active-rent" });
-    }, 5000);
+    setPaymentStatusMessage("Проверяем оплату...");
 
-    return () => {
-      window.clearTimeout(timeoutId);
+    let isDisposed = false;
+    let isCompleted = false;
+    let inFlight = false;
+    let intervalId: number | null = null;
+
+    const completePaymentStep = (message = "Проверяем оплату...") => {
+      if (isDisposed || isCompleted) {
+        return;
+      }
+
+      isCompleted = true;
+      setPaymentStatusMessage(message);
+      dispatch({ type: "payment-completed" });
     };
-  }, [state.step]);
 
-  const moveToNextBySize = (size: LockerSize) => {
-    const availableCells = state.availableCellsBySize[size];
-    const nextCellNumber = availableCells[0] ?? null;
+    const tryOpenRental = async () => {
+      if (!rentalId) {
+        return;
+      }
 
-    dispatch({ type: "select-size", size, cellNumber: nextCellNumber });
+      try {
+        await mvpApi.openRental(rentalId);
+      } catch {
+        // In fallback mode payment may still be pending; UI should continue by timer.
+      }
+    };
 
-    if (nextCellNumber === null) {
-      dispatch({ type: "set-step", step: "no-cells" });
-      return;
+    const pollPayment = async () => {
+      if (isDisposed || isCompleted || inFlight || !paymentId) {
+        return;
+      }
+
+      inFlight = true;
+
+      try {
+        const payment = await mvpApi.getPayment(paymentId);
+
+        if (isDisposed || isCompleted) {
+          return;
+        }
+
+        if (payment.status === "paid") {
+          setPaymentStatusMessage("Оплата подтверждена, открываем ячейку...");
+          await tryOpenRental();
+          completePaymentStep();
+          return;
+        }
+
+        if (payment.status === "failed") {
+          setPaymentStatusMessage("Оплата не подтверждена, продолжаем по таймеру...");
+          return;
+        }
+
+        if (payment.status === "expired") {
+          setPaymentStatusMessage("Время оплаты истекло, продолжаем по таймеру...");
+          return;
+        }
+
+        setPaymentStatusMessage("Проверяем оплату...");
+      } catch {
+        if (!isDisposed && !isCompleted) {
+          setPaymentStatusMessage("Платежный endpoint в разработке, продолжаем по таймеру...");
+        }
+      } finally {
+        inFlight = false;
+      }
+    };
+
+    const timeoutId = window.setTimeout(() => {
+      void (async () => {
+        await tryOpenRental();
+        completePaymentStep();
+      })();
+    }, PAYMENT_FALLBACK_TIMEOUT_MS);
+
+    if (paymentId) {
+      void pollPayment();
+      intervalId = window.setInterval(() => {
+        void pollPayment();
+      }, PAYMENT_POLL_INTERVAL_MS);
     }
 
-    dispatch({ type: "set-step", step: "phone-entry" });
+    return () => {
+      isDisposed = true;
+      window.clearTimeout(timeoutId);
+      if (intervalId !== null) {
+        window.clearInterval(intervalId);
+      }
+    };
+  }, [state.currentRentalId, state.paymentId, state.step]);
+
+  const runSelectionRequest = async (
+    requestBody:
+      | { size: LockerSize }
+      | { dimensions: { length: number; width: number; height: number; unit: "cm" } },
+    messageOnFailure: string,
+    useDimensionsMessage = false,
+  ) => {
+    setIsSubmitting(true);
+    dispatch({ type: "set-message", message: null });
+
+    try {
+      const selection = await mvpApi.createCellSelection(resolvedLockerId, requestBody);
+      dispatch({ type: "selection-created", selection });
+    } catch (error) {
+      const errorCode = getRequestErrorCode(error);
+
+      if (errorCode === "NO_CELLS_AVAILABLE") {
+        dispatch({ type: "set-step", step: "no-cells" });
+        return;
+      }
+
+      const message = getRequestErrorMessage(error, messageOnFailure);
+
+      if (useDimensionsMessage) {
+        setDimensionsMessage(message);
+      } else {
+        dispatch({ type: "set-message", message });
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleSizeSelect = (size: LockerSize) => {
     setDimensionsMessage(null);
-    moveToNextBySize(size);
+    void runSelectionRequest({ size }, "Не удалось выбрать ячейку");
   };
 
   const handleContinueByDimensions = () => {
-    const detectedSize = detectLockerSizeByDimensions(state.dimensions);
+    const length = toDimensionNumber(state.dimensions.length);
+    const width = toDimensionNumber(state.dimensions.width);
+    const height = toDimensionNumber(state.dimensions.height);
 
-    if (!detectedSize) {
+    if (
+      !Number.isFinite(length) ||
+      !Number.isFinite(width) ||
+      !Number.isFinite(height) ||
+      length <= 0 ||
+      width <= 0 ||
+      height <= 0
+    ) {
       setDimensionsMessage("Введите корректные габариты багажа");
       return;
     }
 
     setDimensionsMessage(null);
-    moveToNextBySize(detectedSize);
+
+    void runSelectionRequest(
+      {
+        dimensions: {
+          length,
+          width,
+          height,
+          unit: "cm",
+        },
+      },
+      "Не удалось подобрать ячейку",
+      true,
+    );
   };
 
-  const handleCodeSubmit = () => {
+  const handleCodeSubmit = async () => {
     const enteredCode = state.codeInput.trim().toUpperCase();
 
     if (!enteredCode) {
@@ -298,20 +443,44 @@ function Locker() {
       return;
     }
 
-    if (enteredCode !== scenario.existingAccessCode) {
-      dispatch({ type: "set-message", message: "Код не найден" });
-      return;
-    }
+    setIsSubmitting(true);
+    dispatch({ type: "set-message", message: null });
 
-    dispatch({
-      type: "payment-started",
-      phone: scenario.activeRentalPhone,
-      code: enteredCode,
-      cellNumber: scenario.activeCellNumber,
-    });
+    try {
+      const access = await mvpApi.checkAccessCode(resolvedLockerId, {
+        accessCode: enteredCode,
+      });
+
+      if (access.paymentRequired) {
+        if (!access.payment) {
+          dispatch({ type: "set-message", message: "Не удалось получить информацию об оплате" });
+          return;
+        }
+
+        setPaymentStatusMessage("Проверяем оплату...");
+        dispatch({ type: "payment-started", access });
+        return;
+      }
+
+      dispatch({ type: "access-granted", access });
+    } catch (error) {
+      const errorCode = getRequestErrorCode(error);
+
+      if (errorCode === "INVALID_ACCESS_CODE") {
+        dispatch({ type: "set-message", message: "Код не найден" });
+        return;
+      }
+
+      dispatch({
+        type: "set-message",
+        message: getRequestErrorMessage(error, "Не удалось проверить код доступа"),
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handlePhoneSubmit = () => {
+  const handlePhoneSubmit = async () => {
     const phoneValue = state.phoneInput.trim();
 
     if (!isPhoneValid(phoneValue)) {
@@ -322,32 +491,79 @@ function Locker() {
       return;
     }
 
-    if (state.currentCellNumber === null) {
+    if (!state.selectionId) {
       dispatch({
         type: "set-message",
-        message: "Не удалось определить номер ячейки, выберите размер заново",
+        message: "Бронь истекла, выберите размер заново",
       });
       return;
     }
 
-    dispatch({
-      type: "booking-created",
-      phone: normalizePhone(phoneValue),
-      code: generateAccessCode(),
-      cellNumber: state.currentCellNumber,
-    });
+    setIsSubmitting(true);
+    dispatch({ type: "set-message", message: null });
+
+    try {
+      const booking = await mvpApi.createBooking(resolvedLockerId, {
+        selectionId: state.selectionId,
+        phone: phoneValue,
+      });
+
+      dispatch({ type: "booking-created", booking });
+    } catch (error) {
+      const errorCode = getRequestErrorCode(error);
+
+      if (errorCode === "SELECTION_EXPIRED") {
+        dispatch({ type: "reset" });
+        dispatch({ type: "set-message", message: "Бронь истекла, выберите размер заново" });
+        return;
+      }
+
+      dispatch({
+        type: "set-message",
+        message: getRequestErrorMessage(error, "Не удалось открыть ячейку"),
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleExit = () => {
-    dispatch({ type: "reset", state: initialFlowState });
-    navigate(`/locker/${scenario.id}`, { replace: true });
+    dispatch({ type: "reset" });
+    setDimensionsMessage(null);
+    setPaymentStatusMessage("Проверяем оплату...");
+    navigate(`/locker/${resolvedLockerId}`, { replace: true });
   };
 
-  const handleEndRent = () => {
-    dispatch({ type: "reset", state: initialFlowState });
+  const handleEndRent = async () => {
+    if (!state.currentRentalId) {
+      dispatch({ type: "reset" });
+      return;
+    }
+
+    setIsSubmitting(true);
+    dispatch({ type: "set-message", message: null });
+
+    try {
+      await mvpApi.finishRental(state.currentRentalId);
+      dispatch({ type: "reset" });
+      setDimensionsMessage(null);
+      setPaymentStatusMessage("Проверяем оплату...");
+    } catch (error) {
+      dispatch({
+        type: "set-message",
+        message: getRequestErrorMessage(error, "Не удалось завершить аренду"),
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const displayedCellNumber = state.currentCellNumber ?? scenario.activeCellNumber;
+  const displayedCellNumber = state.currentCellNumber ?? "-";
+
+  const paymentAmountText =
+    state.paymentAmount === null
+      ? "-"
+      : `${state.paymentAmount} ${state.paymentCurrency === "RUB" ? "Р" : state.paymentCurrency}`;
 
   const renderPhoneSummary = () => (
     <div className={styles.phoneSummary}>
@@ -370,7 +586,8 @@ function Locker() {
           <Button
             variant="compact"
             className={styles.primaryAction}
-            onClick={() => dispatch({ type: "reset", state: initialFlowState })}
+            onClick={() => dispatch({ type: "reset" })}
+            disabled={isSubmitting}
           >
             Назад
           </Button>
@@ -408,6 +625,7 @@ function Locker() {
                       key={size}
                       variant="compact"
                       className={sizeClassName}
+                      disabled={isSubmitting}
                       onClick={() => handleSizeSelect(size)}
                     >
                       {SIZE_LABELS[size]}
@@ -430,6 +648,7 @@ function Locker() {
                   className={styles.dimensionInput}
                   placeholder="Длина"
                   value={state.dimensions.length}
+                  disabled={isSubmitting}
                   onChange={(event) =>
                     dispatch({
                       type: "update-dimension",
@@ -443,6 +662,7 @@ function Locker() {
                   className={styles.dimensionInput}
                   placeholder="Ширина"
                   value={state.dimensions.width}
+                  disabled={isSubmitting}
                   onChange={(event) =>
                     dispatch({
                       type: "update-dimension",
@@ -456,6 +676,7 @@ function Locker() {
                   className={styles.dimensionInput}
                   placeholder="Высота"
                   value={state.dimensions.height}
+                  disabled={isSubmitting}
                   onChange={(event) =>
                     dispatch({
                       type: "update-dimension",
@@ -469,6 +690,7 @@ function Locker() {
               <Button
                 variant="compact"
                 className={styles.primaryAction}
+                disabled={isSubmitting}
                 onClick={handleContinueByDimensions}
               >
                 Далее
@@ -488,6 +710,7 @@ function Locker() {
                   className={styles.phoneInput}
                   placeholder="Номер телефона"
                   value={state.phoneInput}
+                  disabled={isSubmitting}
                   onChange={(event) =>
                     dispatch({ type: "update-phone", value: event.target.value })
                   }
@@ -496,6 +719,7 @@ function Locker() {
                 <Button
                   variant="compact"
                   className={styles.primaryAction}
+                  disabled={isSubmitting}
                   onClick={handlePhoneSubmit}
                 >
                   Открыть ячейку
@@ -503,7 +727,12 @@ function Locker() {
                 {state.formMessage && <p className={styles.statusMessage}>{state.formMessage}</p>}
               </div>
 
-              <Button variant="compact" className={styles.secondaryAction} onClick={handleExit}>
+              <Button
+                variant="compact"
+                className={styles.secondaryAction}
+                disabled={isSubmitting}
+                onClick={handleExit}
+              >
                 Выйти
               </Button>
             </div>
@@ -515,9 +744,16 @@ function Locker() {
 
               {renderPhoneSummary()}
 
-              <Button variant="compact" className={styles.secondaryAction} onClick={handleExit}>
+              <Button
+                variant="compact"
+                className={styles.secondaryAction}
+                disabled={isSubmitting}
+                onClick={handleExit}
+              >
                 Выйти
               </Button>
+
+              {state.formMessage && <p className={styles.statusMessage}>{state.formMessage}</p>}
             </div>
           )}
 
@@ -527,9 +763,16 @@ function Locker() {
 
               {renderPhoneSummary()}
 
-              <Button variant="compact" className={styles.secondaryAction} onClick={handleEndRent}>
+              <Button
+                variant="compact"
+                className={styles.secondaryAction}
+                disabled={isSubmitting}
+                onClick={handleEndRent}
+              >
                 Завершить аренду
               </Button>
+
+              {state.formMessage && <p className={styles.statusMessage}>{state.formMessage}</p>}
             </div>
           )}
 
@@ -539,7 +782,7 @@ function Locker() {
 
               {renderPhoneSummary()}
 
-              <p className={styles.paymentStatus}>Проверяем оплату...</p>
+              <p className={styles.paymentStatus}>{paymentStatusMessage}</p>
             </div>
           )}
         </div>
@@ -557,12 +800,14 @@ function Locker() {
                   className={styles.codeInput}
                   placeholder="Введите код"
                   value={state.codeInput}
+                  disabled={isSubmitting}
                   onChange={(event) => dispatch({ type: "update-code", value: event.target.value })}
                 />
 
                 <Button
                   variant="compact"
                   className={styles.arrowButton}
+                  disabled={isSubmitting}
                   aria-label="Проверить код доступа"
                   onClick={handleCodeSubmit}
                 >
@@ -616,15 +861,17 @@ function Locker() {
 
           {state.step === "payment" && (
             <div className={styles.rightSection}>
-              <p className={styles.amountTitle}>К ОПЛАТЕ: {scenario.paymentAmount} Р</p>
+              <p className={styles.amountTitle}>К ОПЛАТЕ: {paymentAmountText}</p>
 
               <div className={styles.qrPlaceholder} aria-label="Моковый QR-код">
                 QR
               </div>
 
-              <p className={styles.helperTextWide}>
-                После оплаты подождите 5 секунд, ячейка откроется автоматически.
-              </p>
+              {state.paymentQrPayload && (
+                <p className={styles.helperText}>ID платежа: {state.paymentId}</p>
+              )}
+
+              <p className={styles.helperTextWide}>После оплаты ячейка откроется автоматически.</p>
             </div>
           )}
         </div>
