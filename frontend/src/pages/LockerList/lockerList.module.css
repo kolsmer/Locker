@@ -1,0 +1,121 @@
+.page {
+  width: min(100%, 768px);
+  margin: 0 auto;
+  min-height: 100svh;
+  padding: 24px 28px 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 28px;
+}
+
+.list {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.listItem {
+  text-align: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+  padding: 16px 0 14px;
+}
+
+.listItem:last-child {
+  border-bottom: none;
+}
+
+.street {
+  display: flex;
+  justify-content: center;
+  align-items: baseline;
+  gap: 8px;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.streetFirstWord {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.streetRestWords {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.sizes {
+  display: grid;
+  grid-template-columns: repeat(4, max-content);
+  justify-content: center;
+  gap: 18px;
+}
+
+.sizeItem {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.sizeLabel {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.sizeValue {
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.message {
+  text-align: center;
+  font-size: 22px;
+  font-weight: 500;
+  margin-top: 56px;
+}
+
+.footer {
+  margin-top: 24px;
+  padding-top: 20px;
+  text-align: center;
+  font-size: 18px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+@media (max-width: 680px) {
+  .page {
+    width: min(100%, 420px);
+    padding: 20px 16px 16px;
+  }
+
+  .header {
+    margin-bottom: 22px;
+  }
+
+  .street {
+    margin-bottom: 6px;
+  }
+
+  .sizes {
+    gap: 12px;
+  }
+
+  .message {
+    font-size: 16px;
+    margin-top: 40px;
+  }
+
+  .footer {
+    margin-top: 16px;
+    font-size: 13px;
+  }
+}
