@@ -1,4 +1,4 @@
-.PHONY: help db-up db-down db-migrate db-reset run dev test build clean
+.PHONY: help db-up db-down db-migrate db-reset run dev test build clean smoke
 
 help:
 	@echo "Available commands:"
@@ -10,6 +10,7 @@ help:
 	@echo "  make dev        - Run API server with DEBUG=1"
 	@echo "  make test       - Run tests"
 	@echo "  make build      - Build locker-api binary"
+	@echo "  make smoke      - Run API smoke test"
 	@echo "  make clean      - Remove local binaries and test artifacts"
 
 db-up:
@@ -38,6 +39,9 @@ test:
 
 build:
 	go build -o locker-api ./cmd/api/main.go
+
+smoke:
+	bash ./scripts/smoke-test.sh
 
 clean:
 	rm -f locker-api main

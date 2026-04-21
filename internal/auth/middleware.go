@@ -1,17 +1,21 @@
 package auth
 
 import (
+	"context"
 	"errors"
 	"net/http"
+	"strconv"
 	"strings"
+
+	"github.com/golang-jwt/jwt/v5"
 )
 
 type Middleware struct {
-	// Will inject repo
+	jwtSecret []byte
 }
 
-func NewMiddleware() *Middleware {
-	return &Middleware{}
+func NewMiddleware(secret string) *Middleware {
+	return &Middleware{jwtSecret: []byte(secret)}
 }
 
 // ExtractToken из Authorization header
@@ -32,29 +36,67 @@ func ExtractToken(r *http.Request) (string, error) {
 // RequireAuth middleware для админ endpoints
 func (m *Middleware) RequireAdmin(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		token, err := ExtractToken(r)
+		tokenStr, err := ExtractToken(r)
 		if err != nil {
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
 			return
 		}
 
-		// TODO: validate JWT
-		_ = token
+		claims, err := m.ValidateToken(tokenStr)
+		if err != nil {
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			return
+		}
 
-		next.ServeHTTP(w, r)
+		ctx := context.WithValue(r.Context(), claimsContextKey, claims)
+		next.ServeHTTP(w, r.WithContext(ctx))
 	})
+}
+
+type contextKey string
+
+const claimsContextKey contextKey = "admin_claims"
+
+func ClaimsFromContext(ctx context.Context) (*Claims, bool) {
+	v := ctx.Value(claimsContextKey)
+	if v == nil {
+		return nil, false
+	}
+	c, ok := v.(*Claims)
+	return c, ok
 }
 
 type Claims struct {
 	AdminID int64
+	Login   string
 	Role    string
+	jwt.RegisteredClaims
 }
 
-func (m *Middleware) ValidateToken(token string) (*Claims, error) {
-	// TODO: parse JWT and validate
-	// For now just placeholder
-	return &Claims{
-		AdminID: 1,
-		Role:    "admin",
-	}, nil
+func (m *Middleware) ValidateToken(tokenStr string) (*Claims, error) {
+	token, err := jwt.Parse(tokenStr, func(t *jwt.Token) (interface{}, error) {
+		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, errors.New("invalid signing method")
+		}
+		return m.jwtSecret, nil
+	})
+	if err != nil || !token.Valid {
+		return nil, errors.New("invalid token")
+	}
+
+	mapClaims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		return nil, errors.New("invalid claims")
+	}
+
+	sub, _ := mapClaims["sub"].(string)
+	adminID, err := strconv.ParseInt(sub, 10, 64)
+	if err != nil {
+		return nil, errors.New("invalid subject")
+	}
+
+	login, _ := mapClaims["login"].(string)
+	role, _ := mapClaims["role"].(string)
+
+	return &Claims{AdminID: adminID, Login: login, Role: role}, nil
 }

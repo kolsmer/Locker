@@ -5,8 +5,8 @@
 ## Что уже сделано
 
 - Активный entrypoint: `cmd/api/main.go`
-- Реализован MVP флоу из API-спеки в `internal/transport/http/mvp_handler.go`
-- Добавлены миграции `001..010`
+- Реализован runtime флоу из API-спеки в `internal/transport/http/locker_handler.go`
+- Добавлены миграции `001..009`, runtime поля folded into `003/004`
 - Описана архитектура в `docs/architecture.md`
 
 ## Priority 1 (блокеры для прод-подобного режима)
@@ -37,7 +37,7 @@
 - [ ] Добавить heartbeat обработку
 
 ### 3. Нормализация service layer
-- [ ] Перенести часть логики из `mvp_handler` в service/repository
+- [ ] Дробить `rental_flow_service` на более узкие сервисы по bounded context
 - [ ] Сохранить текущий API контракт без breaking changes
 
 ## Priority 3 (качество и эксплуатация)
