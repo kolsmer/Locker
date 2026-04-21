@@ -19,10 +19,8 @@ const ADMIN_PROFILE_STORAGE_KEY = "lockit_admin_profile";
 
 const LOCKER_STATUS_OPTIONS: AdminLockerStatus[] = [
   "free",
-  "reserved",
-  "occupied",
-  "locked",
   "open",
+  "occupied",
   "maintenance",
   "out_of_service",
 ];
