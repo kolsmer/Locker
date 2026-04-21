@@ -1,0 +1,8 @@
+services:
+  frontend:
+    ports:
+      - "80:80"
+
+  backend:
+    environment:
+      ENVIRONMENT: production

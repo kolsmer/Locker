@@ -1,0 +1,98 @@
+name: ci-cd
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  backend-tests:
+    name: Backend tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.21"
+          cache: true
+
+      - name: Run Go tests
+        run: go test ./...
+
+  frontend-build:
+    name: Frontend build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend deps
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
+
+  compose-smoke:
+    name: Docker compose smoke
+    runs-on: ubuntu-latest
+    needs:
+      - backend-tests
+      - frontend-build
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build images
+        run: docker compose build migrate backend frontend
+
+      - name: Start Postgres
+        run: docker compose up -d postgres
+
+      - name: Run migrations
+        run: docker compose run --rm migrate
+
+      - name: Start app containers
+        run: docker compose up -d backend frontend
+
+      - name: Check backend health
+        run: docker compose exec -T backend curl -fsS http://localhost:8080/healthz
+
+      - name: Check frontend
+        run: curl -fsS http://localhost:8081 >/dev/null
+
+      - name: Tear down
+        if: always()
+        run: docker compose down -v
+
+  deploy:
+    name: Deploy to server
+    runs-on: ubuntu-latest
+    needs:
+      - compose-smoke
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: niyaz
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script_stop: true
+          script: |
+            cd "${{ secrets.SERVER_APP_DIR }}"
+            git fetch origin main
+            git reset --hard origin/main
+            bash scripts/deploy.sh

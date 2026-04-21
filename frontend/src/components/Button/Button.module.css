@@ -1,0 +1,33 @@
+.btn {
+  border: 2px solid var(--main-text-color);
+  background: transparent;
+  color: var(--main-text-color);
+  border-radius: 999px;
+  padding: 5px 25px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn--regular {
+  font-size: 32px;
+}
+
+.btn--compact {
+  font-size: 16px;
+  line-height: 1.2;
+  padding-block: 8px;
+}
+
+.btn--big {
+  font-size: 64px;
+  line-height: 83px;
+}
+
+.btn--full {
+  width: 100%;
+}
+
+.btn:active {
+  background: var(--main-text-color);
+  color: var(--background);
+}

@@ -1,0 +1,13 @@
+.git
+.idea
+.vscode
+**/.DS_Store
+**/node_modules
+**/dist
+**/build
+**/*.log
+**/*.out
+frontend/node_modules
+frontend/dist
+coverage
+tmp
