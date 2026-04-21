@@ -16,6 +16,7 @@ services:
       retries: 10
 
   migrate:
+    image: locker-migrate
     build:
       context: .
       dockerfile: Dockerfile.migrate
@@ -31,6 +32,7 @@ services:
         condition: service_healthy
 
   backend:
+    image: locker-backend
     build:
       context: .
       dockerfile: Dockerfile.backend
@@ -56,6 +58,7 @@ services:
       retries: 10
 
   frontend:
+    image: locker-frontend
     build:
       context: ./frontend
     restart: unless-stopped
