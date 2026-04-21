@@ -10,10 +10,11 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./migrations:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d locker"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-locker} -h 127.0.0.1"]
+      start_period: 60s
       interval: 10s
       timeout: 5s
-      retries: 10
+      retries: 30
 
   migrate:
     image: locker-migrate
