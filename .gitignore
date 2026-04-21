@@ -53,6 +53,9 @@ coverage/
 go.work
 go.work.sum
 
+# Local Go binaries
+main
+
 # React build
 frontend/build/
 
