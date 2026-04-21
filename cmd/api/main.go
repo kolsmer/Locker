@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"time"
 
+	"locker/internal/auth"
 	"locker/internal/config"
 	"locker/internal/cron"
 	"locker/internal/observability"
@@ -40,6 +41,12 @@ func main() {
 
 	repo := repository.NewRentalFlowRepository(db)
 	svc := service.NewRentalFlowService(repo)
+	adminRepo := repository.NewAdminRepository(db)
+	adminPanelRepo := repository.NewAdminPanelRepository(db)
+	adminSvc := service.NewAdminService(adminRepo, adminPanelRepo, cfg.JWTSecret, time.Hour)
+	authMiddleware := auth.NewMiddleware(cfg.JWTSecret)
+	adminH := httpTransport.NewAdminHandler(adminSvc)
+
 	if err := svc.Init(context.Background()); err != nil {
 		logger.Error("failed to seed demo data", err)
 		log.Fatal(err)
@@ -68,6 +75,20 @@ func main() {
 	apiV1.HandleFunc("/rentals/{rentalId}/open", h.OpenRental).Methods("POST")
 	apiV1.HandleFunc("/rentals/{rentalId}/finish", h.FinishRental).Methods("POST")
 	apiV1.HandleFunc("/rentals/{rentalId}", h.GetRental).Methods("GET")
+
+	adminPublic := apiV1.PathPrefix("/admin").Subrouter()
+	adminPublic.HandleFunc("/login", adminH.Login).Methods("POST")
+
+	adminProtected := apiV1.PathPrefix("/admin").Subrouter()
+	adminProtected.Use(authMiddleware.RequireAdmin)
+	adminProtected.HandleFunc("/me", adminH.Me).Methods("GET")
+	adminProtected.HandleFunc("/locations", adminH.ListLocations).Methods("GET")
+	adminProtected.HandleFunc("/locations/{locationId}/lockers", adminH.ListLocationLockers).Methods("GET")
+	adminProtected.HandleFunc("/lockers/{lockerId}", adminH.GetLocker).Methods("GET")
+	adminProtected.HandleFunc("/lockers/{lockerId}/status", adminH.PatchLockerStatus).Methods("PATCH")
+	adminProtected.HandleFunc("/lockers/{lockerId}/open", adminH.ManualOpenLocker).Methods("POST")
+	adminProtected.HandleFunc("/sessions", adminH.ListSessions).Methods("GET")
+	adminProtected.HandleFunc("/revenue/export", adminH.RevenueExport).Methods("GET")
 
 	logger.Info("starting server on port", cfg.Port)
 
