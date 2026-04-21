@@ -22,9 +22,11 @@ func StartExpiredSelectionCleanup(ctx context.Context, svc *service.RentalFlowSe
 				logger.Info("expired selection cleanup stopped")
 				return
 			case <-ticker.C:
-				if err := svc.CleanupExpiredSelections(context.Background()); err != nil {
+				ctxWithTimeout, cancel := context.WithTimeout(ctx, time.Second*10)
+				if err := svc.CleanupExpiredSelections(ctxWithTimeout); err != nil {
 					logger.Error("expired selection cleanup failed", err)
 				}
+				cancel()
 			}
 		}
 	}()

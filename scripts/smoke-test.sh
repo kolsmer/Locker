@@ -159,3 +159,70 @@ echo "--- key payloads ---"
 response_body "$access_body"
 response_body "$payment_after_body"
 response_body "$rental_after_body"
+
+
+DB_URL="postgres://postgres:postgres@localhost:5432/locker?sslmode=disable"
+BASE_URL="${BASE_URL:-http://localhost:8080}"
+ADMIN_LOGIN="admin"
+ADMIN_PASS="secret"
+
+# Проверяем и создаём админа
+admin_count=$(psql "$DB_URL" -Atc "SELECT COUNT(*) FROM admins WHERE login='$ADMIN_LOGIN';")
+if [[ "$admin_count" == "0" ]]; then
+    psql "$DB_URL" -Atc "INSERT INTO admins (login,password_hash,role,is_active,created_at,updated_at) VALUES ('$ADMIN_LOGIN','$ADMIN_PASS','admin',true,EXTRACT(EPOCH FROM NOW())::bigint,EXTRACT(EPOCH FROM NOW())::bigint);"
+fi
+
+# Логин
+code=$(curl -s -o /tmp/admin_login.json -w '%{http_code}' -X POST "$BASE_URL/api/v1/admin/login" -H 'Content-Type: application/json' -d "{\"login\":\"$ADMIN_LOGIN\",\"password\":\"$ADMIN_PASS\"}")
+echo "POST /api/v1/admin/login -> $code"
+token=$(jq -r '.data.accessToken // empty' /tmp/admin_login.json)
+if [[ -z "$token" ]]; then
+    echo "login failed payload:"; cat /tmp/admin_login.json; exit 1
+fi
+auth="Authorization: Bearer $token"
+
+# GET /admin/me
+code=$(curl -s -o /tmp/admin_me.json -w '%{http_code}' "$BASE_URL/api/v1/admin/me" -H "$auth")
+echo "GET /api/v1/admin/me -> $code"
+
+# GET /admin/locations
+code=$(curl -s -o /tmp/admin_locations.json -w '%{http_code}' "$BASE_URL/api/v1/admin/locations?limit=10&offset=0" -H "$auth")
+echo "GET /api/v1/admin/locations -> $code"
+location_id=$(jq -r '.data[0].id // empty' /tmp/admin_locations.json)
+if [[ -z "$location_id" ]]; then
+    location_id=123
+fi
+
+# GET /admin/locations/$location_id/lockers
+code=$(curl -s -o /tmp/admin_loc_lockers.json -w '%{http_code}' "$BASE_URL/api/v1/admin/locations/$location_id/lockers?limit=10&offset=0" -H "$auth")
+echo "GET /api/v1/admin/locations/$location_id/lockers -> $code"
+locker_id=$(jq -r '.data[0].id // empty' /tmp/admin_loc_lockers.json)
+if [[ -z "$locker_id" ]]; then
+    locker_id=$(psql "$DB_URL" -Atc "SELECT id FROM lockers WHERE location_id=$location_id ORDER BY locker_no LIMIT 1;")
+fi
+
+# GET /admin/lockers/$locker_id
+code=$(curl -s -o /tmp/admin_locker_detail.json -w '%{http_code}' "$BASE_URL/api/v1/admin/lockers/$locker_id" -H "$auth")
+echo "GET /api/v1/admin/lockers/$locker_id -> $code"
+
+# PATCH status
+code=$(curl -s -o /tmp/admin_locker_status.json -w '%{http_code}' -X PATCH "$BASE_URL/api/v1/admin/lockers/$locker_id/status" -H "$auth" -H 'Content-Type: application/json' -d '{"status":"maintenance","reason":"smoke test"}')
+echo "PATCH /api/v1/admin/lockers/$locker_id/status -> $code"
+
+# POST open
+code=$(curl -s -o /tmp/admin_locker_open.json -w '%{http_code}' -X POST "$BASE_URL/api/v1/admin/lockers/$locker_id/open" -H "$auth" -H 'Content-Type: application/json' -d '{"reason":"smoke test open"}')
+echo "POST /api/v1/admin/lockers/$locker_id/open -> $code"
+
+# GET /admin/sessions
+code=$(curl -s -o /tmp/admin_sessions.json -w '%{http_code}' "$BASE_URL/api/v1/admin/sessions?limit=10&offset=0" -H "$auth")
+echo "GET /api/v1/admin/sessions -> $code"
+
+# GET /admin/revenue/export
+today=$(date +%F)
+code=$(curl -s -o /tmp/admin_revenue.xlsx -w '%{http_code}' "$BASE_URL/api/v1/admin/revenue/export?from=$today&to=$today" -H "$auth")
+echo "GET /api/v1/admin/revenue/export -> $code"
+
+echo "--- key payloads ---"
+jq -c '{ok,code:(.error.code//null),admin:(.data.admin//null)}' /tmp/admin_login.json
+jq -c '{ok,code:(.error.code//null),data:(.data//null)}' /tmp/admin_me.json
+jq -c '{ok,code:(.error.code//null),data:(.data//null)}' /tmp/admin_locker_status.json
