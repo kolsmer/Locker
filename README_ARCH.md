@@ -6,7 +6,7 @@ Go + PostgreSQL backend для MVP системы камер хранения.
 
 - Рабочий entrypoint: `cmd/api/main.go`
 - База данных: PostgreSQL
-- Основной runtime handler: `internal/transport/http/mvp_handler.go`
+- Основной runtime handler: `internal/transport/http/locker_handler.go`
 - Транспорт по умолчанию: HTTP (`http://localhost:8080`)
 
 ## Технологии
@@ -155,9 +155,6 @@ psql -U postgres -d locker
 ```sql
 \dt
 SELECT * FROM lockers;
-SELECT * FROM mvp_selections;
-SELECT * FROM mvp_rentals;
-SELECT * FROM mvp_payments;
 ```
 
 ## Debugging

@@ -17,6 +17,8 @@ CREATE INDEX idx_lockers_location ON lockers(location_id);
 CREATE INDEX idx_lockers_status ON lockers(status);
 CREATE INDEX idx_lockers_hardware_id ON lockers(hardware_id);
 CREATE UNIQUE INDEX idx_lockers_unique_no ON lockers(location_id, locker_no);
+CREATE INDEX idx_lockers_pick_free_by_size ON lockers(location_id, UPPER(size), locker_no)
+WHERE status = 'free' AND is_active = true;
 
 -- +goose Down
 DROP TABLE lockers;
