@@ -14,19 +14,23 @@ help:
 	@echo "  make clean      - Remove local binaries and test artifacts"
 
 db-up:
-	docker-compose up -d postgres
+	docker compose up -d postgres
 	@echo "PostgreSQL is running. Waiting for health check..."
 	sleep 5
 
 db-down:
-	docker-compose down
+	docker compose down
 
 db-migrate:
-	goose -dir ./migrations postgres "postgres://postgres:postgres@localhost:5432/locker?sslmode=disable" up
+	docker compose build migrate
+	docker compose run --rm migrate
 
 db-reset:
-	goose -dir ./migrations postgres "postgres://postgres:postgres@localhost:5432/locker?sslmode=disable" reset
-	goose -dir ./migrations postgres "postgres://postgres:postgres@localhost:5432/locker?sslmode=disable" up
+	docker compose down -v
+	docker compose up -d postgres
+	sleep 5
+	docker compose build migrate
+	docker compose run --rm migrate
 
 run:
 	go run ./cmd/api/main.go
