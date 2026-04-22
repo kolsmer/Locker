@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"locker/internal/domain"
 	"math/rand"
 	"strings"
 	"time"
@@ -240,6 +241,7 @@ func (r *RentalFlowRepository) CreateBooking(ctx context.Context, lockerID int64
 	rentalID := genID("rent")
 	accessCode := genAccessCode()
 	openedAt := time.Now().UTC()
+	nowUnix := time.Now().Unix()
 
 	_, err = tx.ExecContext(ctx, `
 		UPDATE storage_sessions
@@ -254,19 +256,21 @@ func (r *RentalFlowRepository) CreateBooking(ctx context.Context, lockerID int64
 		    opened_at=$8,
 		    updated_at=NOW()
 		WHERE selection_id=$9
-	`, bookingID, rentalID, selCellID, selCellNo, phone, accessCode, time.Now().Unix(), openedAt.Unix(), selectionID)
+	`, bookingID, rentalID, selCellID, selCellNo, phone, accessCode, nowUnix, openedAt.Unix(), selectionID)
 	if err != nil {
 		return nil, err
 	}
+
+	initialAmount := domain.CalculatePaymentAmount(nowUnix, nowUnix+60)
 
 	paymentID := genID("pay")
 	paymentExpires := time.Now().UTC().Add(5 * time.Minute)
 	_, err = tx.ExecContext(ctx, `
 		INSERT INTO payments (session_id, rental_id, amount, currency, status, payment_id, provider, qr_payload, payment_expires_at, created_at, updated_at)
-		SELECT id, rental_id, 900, 'RUB', 'pending', $1, 'mock', $2, $3, NOW(), NOW()
+		SELECT id, rental_id, $1, 'RUB', 'pending', $2, 'mock', $3, $4, NOW(), NOW()
 		FROM storage_sessions
-		WHERE rental_id=$4
-	`, paymentID, "lockit://pay/"+paymentID, paymentExpires, rentalID)
+		WHERE rental_id=$5
+	`, initialAmount, paymentID, "lockit://pay/"+paymentID, paymentExpires, rentalID)
 	if err != nil {
 		return nil, err
 	}
@@ -440,14 +444,22 @@ func (r *RentalFlowRepository) FinishRental(ctx context.Context, rentalID string
 	defer tx.Rollback()
 
 	var cellID int64
-	if err := tx.QueryRowContext(ctx, `SELECT locker_cell_id FROM storage_sessions WHERE rental_id=$1 FOR UPDATE`, rentalID).Scan(&cellID); err == sql.ErrNoRows {
+	var startedAt int64
+	if err := tx.QueryRowContext(ctx, `SELECT locker_cell_id, started_at FROM storage_sessions WHERE rental_id=$1 FOR UPDATE`, rentalID).Scan(&cellID, &startedAt); err == sql.ErrNoRows {
 		return nil, ErrRentalNotFound
 	} else if err != nil {
 		return nil, err
 	}
 
 	finishedAt := time.Now().UTC()
-	_, _ = tx.ExecContext(ctx, `UPDATE storage_sessions SET status='closed', finished_at=$1, closed_at=$2, updated_at=NOW() WHERE rental_id=$3`, finishedAt.Unix(), finishedAt.Unix(), rentalID)
+	finishedAtUnix := finishedAt.Unix()
+	
+	finalAmount := domain.CalculatePaymentAmount(startedAt, finishedAtUnix)
+
+	_, _ = tx.ExecContext(ctx, `UPDATE storage_sessions SET status='closed', finished_at=$1, closed_at=$2, updated_at=NOW() WHERE rental_id=$3`, finishedAtUnix, finishedAtUnix, rentalID)
+	
+	_, _ = tx.ExecContext(ctx, `UPDATE payments SET amount=$1, updated_at=NOW() WHERE rental_id=$2`, finalAmount, rentalID)
+	
 	_, _ = tx.ExecContext(ctx, `UPDATE lockers SET status='free', updated_at=EXTRACT(EPOCH FROM NOW())::bigint WHERE id=$1`, cellID)
 
 	if err := tx.Commit(); err != nil {
@@ -455,9 +467,10 @@ func (r *RentalFlowRepository) FinishRental(ctx context.Context, rentalID string
 	}
 
 	return map[string]interface{}{
-		"rentalId":   rentalID,
-		"state":      "closed",
-		"finishedAt": finishedAt.UTC().Format(time.RFC3339),
+		"rentalId":    rentalID,
+		"state":       "closed",
+		"finishedAt":  finishedAt.UTC().Format(time.RFC3339),
+		"finalAmount": finalAmount,
 	}, nil
 }
 
