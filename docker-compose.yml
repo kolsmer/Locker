@@ -117,6 +117,13 @@ services:
       GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
       GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_SMTP_ENABLED: "true"
+      GF_SMTP_HOST: smtp.gmail.com:587
+      GF_SMTP_USER: holoniyaz@gmail.com
+      GF_SMTP_PASSWORD: "ТВОЙ_APP_PASSWORD"
+      GF_SMTP_FROM_ADDRESS: holoniyaz@gmail.com
+      GF_SMTP_FROM_NAME: Grafana
+      GF_SMTP_SKIP_VERIFY: "true"
     volumes:
       - grafana_data:/var/lib/grafana
       - ./observability/grafana/provisioning/datasources/datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
