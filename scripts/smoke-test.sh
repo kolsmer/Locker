@@ -134,16 +134,17 @@ fi
 
 code="$(request GET "/api/v1/payments/$payment_id" '' "$payment_body")"
 assert_status "GET /api/v1/payments/$payment_id" 200 "$code" "$payment_body"
+payment_amount_before="$(jq -r '.data.amount // 0' "$payment_body")"
+echo "Payment amount before: $payment_amount_before"
 
 code="$(request POST "/api/v1/rentals/$rental_id/open" '' "$open_before_body")"
 assert_status "POST /api/v1/rentals/$rental_id/open (before paid)" 402 "$code" "$open_before_body"
 
-sleep "$wait_seconds"
+sleep 120
 
 code="$(request GET "/api/v1/payments/$payment_id" '' "$payment_after_body")"
 assert_status "GET /api/v1/payments/$payment_id (after wait)" 200 "$code" "$payment_after_body"
 
-code="$(request POST "/api/v1/rentals/$rental_id/open" '' "$open_after_body")"
 assert_status "POST /api/v1/rentals/$rental_id/open (after paid)" 200 "$code" "$open_after_body"
 
 code="$(request GET "/api/v1/rentals/$rental_id" '' "$rental_before_body")"
@@ -155,10 +156,22 @@ assert_status "POST /api/v1/rentals/$rental_id/finish" 200 "$code" "$finish_body
 code="$(request GET "/api/v1/rentals/$rental_id" '' "$rental_after_body")"
 assert_status "GET /api/v1/rentals/$rental_id (after finish)" 200 "$code" "$rental_after_body"
 
+payment_amount_after="$(jq -r '.data.finalAmount // 0' "$finish_body")"
+echo "Payment amount after: $payment_amount_after"
+
+# Check payment amount (should be at least 10 for 1 minute)
+if (( $(echo "$payment_amount_after < 10" | bc -l) )); then
+  echo "ERROR: Payment amount too low: $payment_amount_after (expected >= 10)" >&2
+  cat "$finish_body" >&2
+  exit 1
+fi
+echo "✓ Payment amount valid: $payment_amount_after"
+
 echo "--- key payloads ---"
 response_body "$access_body"
 response_body "$payment_after_body"
 response_body "$rental_after_body"
+response_body "$finish_body"
 
 
 DB_URL="postgres://postgres:postgres@localhost:5432/locker?sslmode=disable"

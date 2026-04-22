@@ -18,6 +18,8 @@ import (
 
 	"github.com/gorilla/mux"
 	_ "github.com/lib/pq"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 func main() {
@@ -46,6 +48,7 @@ func main() {
 	adminSvc := service.NewAdminService(adminRepo, adminPanelRepo, cfg.JWTSecret, time.Hour)
 	authMiddleware := auth.NewMiddleware(cfg.JWTSecret)
 	adminH := httpTransport.NewAdminHandler(adminSvc)
+	observability.RegisterMetrics(prometheus.DefaultRegisterer)
 
 	if err := svc.Init(context.Background()); err != nil {
 		logger.Error("failed to seed demo data", err)
@@ -56,6 +59,10 @@ func main() {
 
 	// Router
 	router := mux.NewRouter()
+	router.Use(observability.RequestIDMiddleware)
+	router.Use(observability.RecoveryMiddleware(logger))
+	router.Use(observability.MetricsMiddleware)
+	router.Use(observability.LoggingMiddleware(logger))
 	router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		_, _ = w.Write([]byte(`{"ok":true,"data":{"service":"LOCK'IT API","version":"v1"}}`))
@@ -64,6 +71,18 @@ func main() {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("ok"))
 	}).Methods("GET")
+	router.HandleFunc("/readyz", func(w http.ResponseWriter, r *http.Request) {
+		ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
+		defer cancel()
+		if err := db.PingContext(ctx); err != nil {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			_, _ = w.Write([]byte("db not ready"))
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("ready"))
+	}).Methods("GET")
+	router.Handle("/metrics", promhttp.Handler()).Methods("GET")
 
 	// API v1
 	apiV1 := router.PathPrefix("/api/v1").Subrouter()
@@ -93,7 +112,16 @@ func main() {
 	logger.Info("starting server on port", cfg.Port)
 
 	// Start server
-	if err := http.ListenAndServe(":"+cfg.Port, router); err != nil {
+	srv := &http.Server{
+		Addr:              ":" + cfg.Port,
+		Handler:           router,
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       15 * time.Second,
+		WriteTimeout:      30 * time.Second,
+		IdleTimeout:       60 * time.Second,
+	}
+
+	if err := srv.ListenAndServe(); err != nil {
 		logger.Error("server error", err)
 		log.Fatal(err)
 	}

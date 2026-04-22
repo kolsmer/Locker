@@ -1,4 +1,4 @@
-.PHONY: help db-up db-down db-migrate db-reset run dev test build clean smoke
+.PHONY: help db-up db-down db-migrate db-reset run dev test build clean smoke obs-up obs-down
 
 help:
 	@echo "Available commands:"
@@ -11,22 +11,28 @@ help:
 	@echo "  make test       - Run tests"
 	@echo "  make build      - Build locker-api binary"
 	@echo "  make smoke      - Run API smoke test"
+	@echo "  make obs-up     - Start observability stack (Prometheus/Grafana/Loki/Promtail)"
+	@echo "  make obs-down   - Stop observability stack"
 	@echo "  make clean      - Remove local binaries and test artifacts"
 
 db-up:
-	docker-compose up -d postgres
+	docker compose up -d postgres
 	@echo "PostgreSQL is running. Waiting for health check..."
 	sleep 5
 
 db-down:
-	docker-compose down
+	docker compose down
 
 db-migrate:
-	goose -dir ./migrations postgres "postgres://postgres:postgres@localhost:5432/locker?sslmode=disable" up
+	docker compose build migrate
+	docker compose run --rm migrate
 
 db-reset:
-	goose -dir ./migrations postgres "postgres://postgres:postgres@localhost:5432/locker?sslmode=disable" reset
-	goose -dir ./migrations postgres "postgres://postgres:postgres@localhost:5432/locker?sslmode=disable" up
+	docker compose down -v
+	docker compose up -d postgres
+	sleep 5
+	docker compose build migrate
+	docker compose run --rm migrate
 
 run:
 	go run ./cmd/api/main.go
@@ -42,6 +48,12 @@ build:
 
 smoke:
 	bash ./scripts/smoke-test.sh
+
+obs-up:
+	docker compose --profile observability up -d
+
+obs-down:
+	docker compose --profile observability down
 
 clean:
 	rm -f locker-api main

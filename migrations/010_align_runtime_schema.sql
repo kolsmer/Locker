@@ -1,4 +1,5 @@
 -- +goose Up
+-- +goose StatementBegin
 ALTER TABLE storage_sessions
     ADD COLUMN IF NOT EXISTS selection_id VARCHAR(64),
     ADD COLUMN IF NOT EXISTS selected_size VARCHAR(4),
@@ -114,6 +115,7 @@ CREATE INDEX IF NOT EXISTS idx_payments_rental_created_desc
 
 CREATE INDEX IF NOT EXISTS idx_payments_session_created_desc
     ON payments(session_id, created_at DESC);
+-- +goose StatementEnd
 
 -- +goose Down
 -- This migration aligns legacy schemas with the current runtime contract.
