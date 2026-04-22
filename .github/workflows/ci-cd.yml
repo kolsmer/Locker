@@ -97,11 +97,49 @@ jobs:
       - name: Start app containers
         run: docker compose up -d --no-build backend frontend
 
+      - name: Wait for containers to become healthy
+        run: |
+          wait_for_service() {
+            local service="$1"
+            local cid
+            local status
+
+            cid="$(docker compose ps -q "$service")"
+            if [ -z "$cid" ]; then
+              echo "No container found for service: $service"
+              docker compose ps
+              exit 1
+            fi
+
+            for _ in $(seq 1 60); do
+              status="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "$cid")"
+              if [ "$status" = "healthy" ] || [ "$status" = "running" ]; then
+                echo "$service status: $status"
+                return 0
+              fi
+              sleep 2
+            done
+
+            echo "$service did not become ready in time. Last status: $status"
+            docker compose ps
+            docker compose logs "$service"
+            exit 1
+          }
+
+          wait_for_service backend
+          wait_for_service frontend
+
       - name: Check backend health
         run: docker compose exec -T backend curl -fsS http://localhost:8080/healthz
 
       - name: Check frontend
         run: curl -fsS http://localhost:8081 >/dev/null
+
+      - name: Dump compose status on failure
+        if: failure()
+        run: |
+          docker compose ps
+          docker compose logs --no-color postgres migrate backend frontend
 
       - name: Tear down
         if: always()

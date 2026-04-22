@@ -2,7 +2,8 @@
 
 set -euo pipefail
 
-base_url="${BASE_URL:-http://localhost:18080}"
+BASE_URL="${BASE_URL:-http://localhost:8080}"
+base_url="$BASE_URL"
 phone="${PHONE:-+79991234567}"
 size="${SIZE:-m}"
 locker_id="${LOCKER_ID:-123}"
@@ -161,8 +162,7 @@ response_body "$payment_after_body"
 response_body "$rental_after_body"
 
 
-DB_URL="postgres://postgres:postgres@localhost:5432/locker?sslmode=disable"
-BASE_URL="${BASE_URL:-http://localhost:8080}"
+DB_URL="${DB_URL:-postgres://postgres:postgres@localhost:5432/locker?sslmode=disable}"
 ADMIN_LOGIN="admin"
 ADMIN_PASS="secret"
 
