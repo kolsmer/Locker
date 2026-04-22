@@ -10,6 +10,8 @@ const (
 	PaymentStatusRefunded  PaymentStatus = "refunded"
 )
 
+const PricePerMinute = 10.0
+
 // Payment платёж
 type Payment struct {
 	ID                int64
@@ -28,4 +30,20 @@ type Payment struct {
 
 func (p *Payment) IsPaid() bool {
 	return p.Status == PaymentStatusConfirmed
+}
+
+func CalculatePaymentAmount(startTime, endTime int64) float64 {
+	if endTime <= startTime {
+		return 0
+	}
+	
+	durationSeconds := float64(endTime - startTime)
+	durationMinutes := durationSeconds / 60.0
+	
+	minutes := int64((durationMinutes + 0.5))
+	if minutes < 1 {
+		minutes = 1
+	}
+	
+	return float64(minutes) * PricePerMinute
 }
