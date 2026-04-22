@@ -3,8 +3,8 @@ name: ci-cd
 on:
   push:
     branches:
+      - dev
       - main
-  pull_request:
 
 jobs:
   backend-tests:
@@ -48,6 +48,7 @@ jobs:
   compose-smoke:
     name: Docker compose smoke
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     needs:
       - backend-tests
       - frontend-build
@@ -55,8 +56,37 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Build images
-        run: docker compose build migrate backend frontend
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build migrate image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile.migrate
+          load: true
+          tags: locker-migrate
+          cache-from: type=gha,scope=locker-migrate
+          cache-to: type=gha,mode=max,scope=locker-migrate
+
+      - name: Build backend image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile.backend
+          load: true
+          tags: locker-backend
+          cache-from: type=gha,scope=locker-backend
+          cache-to: type=gha,mode=max,scope=locker-backend
+
+      - name: Build frontend image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          load: true
+          tags: locker-frontend
+          cache-from: type=gha,scope=locker-frontend
+          cache-to: type=gha,mode=max,scope=locker-frontend
 
       - name: Start Postgres
         run: docker compose up -d postgres
@@ -65,7 +95,7 @@ jobs:
         run: docker compose run --rm migrate
 
       - name: Start app containers
-        run: docker compose up -d backend frontend
+        run: docker compose up -d --no-build backend frontend
 
       - name: Check backend health
         run: docker compose exec -T backend curl -fsS http://localhost:8080/healthz
@@ -92,7 +122,16 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           script_stop: true
           script: |
-            cd "${{ secrets.SERVER_APP_DIR }}"
+            APP_DIR="${{ secrets.SERVER_APP_DIR }}"
+            if [ -z "$APP_DIR" ]; then
+              echo "ERROR: SERVER_APP_DIR secret is empty"
+              exit 1
+            fi
+            if [ ! -d "$APP_DIR" ]; then
+              echo "ERROR: SERVER_APP_DIR does not exist: $APP_DIR"
+              exit 1
+            fi
+            cd "$APP_DIR"
             git fetch origin main
             git reset --hard origin/main
             bash scripts/deploy.sh

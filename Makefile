@@ -1,4 +1,4 @@
-.PHONY: help db-up db-down db-migrate db-reset run dev test build clean smoke
+.PHONY: help db-up db-down db-migrate db-reset run dev test build clean smoke obs-up obs-down
 
 help:
 	@echo "Available commands:"
@@ -11,6 +11,8 @@ help:
 	@echo "  make test       - Run tests"
 	@echo "  make build      - Build locker-api binary"
 	@echo "  make smoke      - Run API smoke test"
+	@echo "  make obs-up     - Start observability stack (Prometheus/Grafana/Loki/Promtail)"
+	@echo "  make obs-down   - Stop observability stack"
 	@echo "  make clean      - Remove local binaries and test artifacts"
 
 db-up:
@@ -46,6 +48,12 @@ build:
 
 smoke:
 	bash ./scripts/smoke-test.sh
+
+obs-up:
+	docker compose --profile observability up -d
+
+obs-down:
+	docker compose --profile observability down
 
 clean:
 	rm -f locker-api main
