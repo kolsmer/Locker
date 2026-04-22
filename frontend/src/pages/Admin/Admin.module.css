@@ -1,0 +1,453 @@
+.page {
+  min-height: 100svh;
+  width: min(100%, 1480px);
+  margin: 0 auto;
+  padding: 22px 28px 30px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.adminBadge {
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.infoText,
+.errorText,
+.mutedText,
+.loadingText,
+.emptyState {
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.infoText {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.errorText {
+  color: #ff9c9c;
+}
+
+.mutedText {
+  color: rgba(255, 255, 255, 0.74);
+}
+
+.loadingText {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.emptyState {
+  color: rgba(255, 255, 255, 0.66);
+}
+
+.loginShell {
+  margin: auto;
+  width: min(100%, 420px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 18px;
+  padding: 28px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03));
+}
+
+.logo {
+  margin-bottom: 2px;
+}
+
+.loginTitle {
+  text-align: center;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.loginForm {
+  width: 100%;
+  display: grid;
+  gap: 10px;
+}
+
+.dashboard {
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) minmax(360px, 1.2fr) minmax(350px, 1.15fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.panel {
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 160px;
+}
+
+.panelTitle {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.panelSubtitle {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.inlineForm {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+}
+
+.controlRow {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+}
+
+.fieldLabel {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.74);
+}
+
+.select,
+.dateInput,
+.textarea {
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.22);
+  color: var(--main-text-color);
+  font-family: inherit;
+  font-size: 14px;
+}
+
+.select,
+.dateInput {
+  min-height: 34px;
+  padding: 6px 10px;
+}
+
+.textarea {
+  resize: vertical;
+  min-height: 74px;
+  padding: 8px 10px;
+}
+
+.locationList,
+.lockerList,
+.eventsList {
+  list-style: none;
+  display: grid;
+  gap: 8px;
+}
+
+.locationList {
+  max-height: 360px;
+  overflow: auto;
+}
+
+.locationItem,
+.lockerList li {
+  min-width: 0;
+}
+
+.locationButton,
+.lockerButton {
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.16);
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.locationButton {
+  padding: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.locationButtonActive,
+.lockerButtonActive {
+  border-color: rgba(255, 255, 255, 0.78);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.locationMain {
+  display: grid;
+  gap: 3px;
+}
+
+.locationName {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.locationAddress {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.locationStats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.statItem {
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 999px;
+  padding: 3px 8px;
+  font-size: 12px;
+}
+
+.revenueBlock {
+  margin-top: auto;
+  border-top: 1px solid rgba(255, 255, 255, 0.18);
+  padding-top: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.dateRow {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+}
+
+.wideButton {
+  width: 100%;
+}
+
+.lockerList {
+  max-height: 560px;
+  overflow: auto;
+}
+
+.lockerButton {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 10px;
+}
+
+.lockerNo {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.lockerSize {
+  font-size: 13px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+
+.statusChip {
+  justify-self: start;
+  border-radius: 999px;
+  padding: 3px 8px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.status--free {
+  background: rgba(57, 214, 140, 0.22);
+  border: 1px solid rgba(57, 214, 140, 0.65);
+}
+
+.status--reserved {
+  background: rgba(255, 198, 65, 0.2);
+  border: 1px solid rgba(255, 198, 65, 0.62);
+}
+
+.status--occupied {
+  background: rgba(255, 131, 131, 0.24);
+  border: 1px solid rgba(255, 131, 131, 0.66);
+}
+
+.status--locked {
+  background: rgba(170, 180, 255, 0.22);
+  border: 1px solid rgba(170, 180, 255, 0.66);
+}
+
+.status--open {
+  background: rgba(120, 220, 255, 0.22);
+  border: 1px solid rgba(120, 220, 255, 0.66);
+}
+
+.status--maintenance {
+  background: rgba(255, 154, 74, 0.2);
+  border: 1px solid rgba(255, 154, 74, 0.66);
+}
+
+.status--out_of_service {
+  background: rgba(120, 120, 120, 0.4);
+  border: 1px solid rgba(194, 194, 194, 0.72);
+}
+
+.detailGrid {
+  display: grid;
+  gap: 6px;
+}
+
+.detailRow {
+  display: grid;
+  grid-template-columns: minmax(120px, auto) minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+}
+
+.detailLabel {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.74);
+}
+
+.detailValue {
+  min-width: 0;
+  word-break: break-word;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.actionBlock {
+  border-top: 1px solid rgba(255, 255, 255, 0.16);
+  padding-top: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.eventsList {
+  max-height: 190px;
+  overflow: auto;
+}
+
+.eventItem {
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 10px;
+  padding: 7px 9px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.eventType {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.eventDate {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.sessionsPanel {
+  margin-top: 2px;
+}
+
+.sessionFilterRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.sessionGrid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 6px;
+  align-items: stretch;
+}
+
+.sessionGridHeader,
+.sessionGridRow {
+  border-radius: 8px;
+  padding: 7px 8px;
+  font-size: 13px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sessionGridHeader {
+  background: rgba(255, 255, 255, 0.1);
+  font-weight: 700;
+}
+
+.sessionGridRow {
+  background: rgba(0, 0, 0, 0.18);
+}
+
+@media (max-width: 1320px) {
+  .dashboard {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .sessionsPanel {
+    margin-top: 8px;
+  }
+}
+
+@media (max-width: 930px) {
+  .page {
+    padding-inline: 14px;
+  }
+
+  .header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .dashboard {
+    grid-template-columns: 1fr;
+  }
+
+  .controlRow,
+  .dateRow {
+    grid-template-columns: 1fr;
+  }
+
+  .sessionGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
