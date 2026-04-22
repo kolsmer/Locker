@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: locker-config
+data:
+  POSTGRES_DB: locker
+  POSTGRES_USER: postgres
+  DB_HOST: postgres
+  DB_PORT: "5432"
+  DB_NAME: locker
+  DB_USER: postgres
+  PORT: "8080"
+  ENVIRONMENT: production
