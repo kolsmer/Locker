@@ -317,7 +317,7 @@ function Locker() {
         if (payment.status === "paid") {
           setPaymentStatusMessage("Оплата подтверждена, открываем ячейку...");
           await tryOpenRental();
-          completePaymentStep();
+          // Keep payment screen visible for the full fallback timeout.
           return;
         }
 
@@ -462,12 +462,18 @@ function Locker() {
         return;
       }
 
-      dispatch({ type: "access-granted", access });
+      // Keep a consistent UX: show payment screen for the timer even when backend
+      // already considers payment confirmed.
+      setPaymentStatusMessage("Оплата подтверждена, открываем ячейку...");
+      dispatch({ type: "payment-started", access });
     } catch (error) {
       const errorCode = getRequestErrorCode(error);
 
       if (errorCode === "INVALID_ACCESS_CODE") {
-        dispatch({ type: "set-message", message: "Код не найден" });
+        dispatch({
+          type: "set-message",
+          message: "Код не найден или аренда уже завершена",
+        });
         return;
       }
 
