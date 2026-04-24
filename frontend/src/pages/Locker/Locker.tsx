@@ -61,6 +61,7 @@ type Action =
 const SIZE_OPTIONS: LockerSize[] = ["s", "m", "l", "xl"];
 const PAYMENT_FALLBACK_TIMEOUT_MS = 5000;
 const PAYMENT_POLL_INTERVAL_MS = 1500;
+const PAYMENT_DISPLAY_SECONDS = PAYMENT_FALLBACK_TIMEOUT_MS / 1000;
 
 const SIZE_LABELS: Record<LockerSize, string> = {
   s: "S",
@@ -255,11 +256,13 @@ function Locker() {
   const [state, dispatch] = useReducer(lockerReducer, undefined, createInitialFlowState);
   const [dimensionsMessage, setDimensionsMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [paymentCountdown, setPaymentCountdown] = useState(PAYMENT_DISPLAY_SECONDS);
   const [paymentStatusMessage, setPaymentStatusMessage] = useState("Проверяем оплату...");
 
   useEffect(() => {
     dispatch({ type: "reset" });
     setDimensionsMessage(null);
+    setPaymentCountdown(PAYMENT_DISPLAY_SECONDS);
     setPaymentStatusMessage("Проверяем оплату...");
   }, [resolvedLockerId]);
 
@@ -272,11 +275,15 @@ function Locker() {
     }
 
     setPaymentStatusMessage("Проверяем оплату...");
+    setPaymentCountdown(PAYMENT_DISPLAY_SECONDS);
 
     let isDisposed = false;
     let isCompleted = false;
     let inFlight = false;
     let intervalId: number | null = null;
+    let countdownIntervalId: number | null = null;
+    let completionTimeoutId: number | null = null;
+    const paymentStepDeadline = Date.now() + PAYMENT_FALLBACK_TIMEOUT_MS;
 
     const completePaymentStep = (message = "Проверяем оплату...") => {
       if (isDisposed || isCompleted) {
@@ -300,6 +307,33 @@ function Locker() {
       }
     };
 
+    const completePaymentWhenReady = (message = "Проверяем оплату...") => {
+      if (isDisposed || isCompleted) {
+        return;
+      }
+
+      if (completionTimeoutId !== null) {
+        window.clearTimeout(completionTimeoutId);
+      }
+
+      const remainingMs = Math.max(paymentStepDeadline - Date.now(), 0);
+      completionTimeoutId = window.setTimeout(() => {
+        void (async () => {
+          await tryOpenRental();
+          completePaymentStep(message);
+        })();
+      }, remainingMs);
+    };
+
+    const syncPaymentCountdown = () => {
+      const remainingMs = Math.max(paymentStepDeadline - Date.now(), 0);
+      setPaymentCountdown(Math.ceil(remainingMs / 1000));
+    };
+
+    syncPaymentCountdown();
+    countdownIntervalId = window.setInterval(syncPaymentCountdown, 1000);
+    completePaymentWhenReady();
+
     const pollPayment = async () => {
       if (isDisposed || isCompleted || inFlight || !paymentId) {
         return;
@@ -316,8 +350,7 @@ function Locker() {
 
         if (payment.status === "paid") {
           setPaymentStatusMessage("Оплата подтверждена, открываем ячейку...");
-          await tryOpenRental();
-          completePaymentStep();
+          completePaymentWhenReady();
           return;
         }
 
@@ -341,13 +374,6 @@ function Locker() {
       }
     };
 
-    const timeoutId = window.setTimeout(() => {
-      void (async () => {
-        await tryOpenRental();
-        completePaymentStep();
-      })();
-    }, PAYMENT_FALLBACK_TIMEOUT_MS);
-
     if (paymentId) {
       void pollPayment();
       intervalId = window.setInterval(() => {
@@ -357,7 +383,12 @@ function Locker() {
 
     return () => {
       isDisposed = true;
-      window.clearTimeout(timeoutId);
+      if (completionTimeoutId !== null) {
+        window.clearTimeout(completionTimeoutId);
+      }
+      if (countdownIntervalId !== null) {
+        window.clearInterval(countdownIntervalId);
+      }
       if (intervalId !== null) {
         window.clearInterval(intervalId);
       }
@@ -530,6 +561,7 @@ function Locker() {
   const handleExit = () => {
     dispatch({ type: "reset" });
     setDimensionsMessage(null);
+    setPaymentCountdown(PAYMENT_DISPLAY_SECONDS);
     setPaymentStatusMessage("Проверяем оплату...");
     navigate(`/locker/${resolvedLockerId}`, { replace: true });
   };
@@ -547,6 +579,7 @@ function Locker() {
       await mvpApi.finishRental(state.currentRentalId);
       dispatch({ type: "reset" });
       setDimensionsMessage(null);
+      setPaymentCountdown(PAYMENT_DISPLAY_SECONDS);
       setPaymentStatusMessage("Проверяем оплату...");
     } catch (error) {
       dispatch({
@@ -783,6 +816,7 @@ function Locker() {
               {renderPhoneSummary()}
 
               <p className={styles.paymentStatus}>{paymentStatusMessage}</p>
+              <p className={styles.helperTextWide}>Демо-таймер: {paymentCountdown} сек.</p>
             </div>
           )}
         </div>
