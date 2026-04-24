@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1.7
 FROM golang:1.21-alpine
 
-RUN apk add --no-cache ca-certificates
+RUN apk add --no-cache ca-certificates postgresql-client
 
 WORKDIR /app
 
@@ -13,4 +13,14 @@ COPY migrations ./migrations
 
 ENV PATH="/go/bin:${PATH}"
 
-CMD ["sh", "-c", "goose -dir /app/migrations postgres \"postgres://$DB_USER:$DB_PASSWORD@$DB_HOST:$DB_PORT/$DB_NAME?sslmode=disable\" up"]
+CMD ["sh", "-ec", "\
+export PGPASSWORD=\"$DB_PASSWORD\"; \
+until pg_isready -h \"$DB_HOST\" -p \"$DB_PORT\" -U \"$DB_USER\" -d postgres; do \
+	echo 'waiting for postgres...'; \
+	sleep 2; \
+done; \
+if ! psql \"postgres://$DB_USER:$DB_PASSWORD@$DB_HOST:$DB_PORT/postgres?sslmode=disable\" -Atqc \"SELECT 1 FROM pg_database WHERE datname='${DB_NAME}'\" | grep -q 1; then \
+	echo \"database ${DB_NAME} not found, creating...\"; \
+	psql \"postgres://$DB_USER:$DB_PASSWORD@$DB_HOST:$DB_PORT/postgres?sslmode=disable\" -v ON_ERROR_STOP=1 -c \"CREATE DATABASE \\\"${DB_NAME}\\\"\"; \
+fi; \
+goose -dir /app/migrations postgres \"postgres://$DB_USER:$DB_PASSWORD@$DB_HOST:$DB_PORT/$DB_NAME?sslmode=disable\" up"]
